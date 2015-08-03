@@ -11,5 +11,8 @@
     "ListView"
   ],
   "author": "Shaheen Ghiassy",
-  "license": "ISC"
+  "license": "ISC",
+  "dependencies": {
+    "react-native": "^0.8.0"
+  }
 }
