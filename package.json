@@ -10,9 +10,13 @@
     "ReactNative",
     "ListView"
   ],
-  "author": "Shaheen Ghiassy",
+  "author": {
+    "name" : "Shaheen Ghiassy",
+    "email" : "shaheen.ghiassy@gmail.com",
+    "url" : "http://shaheenghiassy.com"
+  },
   "license": "ISC",
-  "dependencies": {
+  "peerDependencies": {
     "react-native": "^0.8.0"
   }
 }
