@@ -4,17 +4,17 @@ SGListView is a memory minded implementation of the React Native's ListView.
 
 ## The Problem
 
-The React Native team has done a tremendous job building a robust platform. One oversight, is the memory performance of their ListView implementation. When scrolling down long lists, the memory footprint increases linearly and will eventually exhaust the platform the app is running on. On a memory-constrained mobile device, this behavior can be a deal breaker for many.
+The React Native team has done a tremendous job building a robust platform. One oversight, is the memory performance of their ListView implementation. When scrolling down long lists, the memory footprint increases linearly and will eventually exhaust all available memory. On a device as memory-constrained as a mobile device, this behavior can be a deal breaker for many.
 
 ![Native ListView Performance](http://cl.ly/image/0K2E4047352Z/ListView-196.png.png)
 An example of ListView performance for long lists.
 
 ## The Solution
 
-SGListView resolves React Native's ListView memory problem by controlling what's being drawn to the screen. When cells are scrolled off screen, the cells intelligently flush their internal view and only retain their bounding box resulting in huge performance and memory gains.
+SGListView resolves React Native's ListView memory problem by controlling what's being drawn to the screen and what's kept in memory. When cells are scrolled off screen, SGListView intelligently flushes their internal view and only retain the cell's existing bounding box - resulting in huge performance and memory gains.
 
-  * React Native ListView ended at: **405MB**
-  * React Native SGListView ended at: **158MB**
+  * React Native ListView scrolling down 200 rows took: **405MB**
+  * React Native SGListView scrolling down 200 rows took: **158MB**
 
 ![SGListView Performance](http://cl.ly/image/07190k0r041B/JSListView-196.png)
 An example of SGListView performance for long lists.
@@ -25,12 +25,12 @@ An example of SGListView performance for long lists.
 Install via npm
 
 ```
-npm install XXX --save
+npm install XXX --save (to be updated)
 ```
 
 ## Usage
 
-SGListView was designed to be a zero-fuss drop-in replacement for ListView. Simply import the package and change references to `ListView` to `SGListView`. Nothing else. No fuss, no muss.
+SGListView was designed to be a developer-friendly drop-in replacement for ListView. Simply import the package and change references to `ListView` to `SGListView`. Nothing else. No fuss, no muss.
 
 Import SGListView
 
@@ -53,7 +53,7 @@ Done.
 
 ## Options
 
-  * **premptiveLoading**: SGListView will dump the internal view of each cell as it goes off the screen. Conversely, when the cell comes back on the screen, we repopulate the cell with its view. If this transition happens too late in the process, the user will see a flash on screen as the cell transitions from a blank bounding box to its full view representation. SGListView prevents this from happening by preemptively loading cells before they come on screen. By default we load 2 cells in the future before they come on screen. SGListView allows you to override the number of cells to load preemptively through the prop *premptiveLoading*. **Note**: Because of this logic, its advised not to use ListView's prop *scrollRenderAheadDistance* as they can be in conflict with one another.
+  * **premptiveLoading**: SGListView will dump the internal view of each cell as it goes off the screen. Conversely, when the cell comes back on the screen, we repopulate the cell with its view. If this transition happens too late in the process, the user will see a flash on screen as the cell transitions from a blank bounding box to its full view representation. SGListView prevents this from happening by preemptively loading cells before they come on screen. By default, we load 2 cells in the future before they come on screen. SGListView allows you to override the number of cells to load preemptively through the prop *premptiveLoading*. **Note**: Because of this logic, its advised not to use ListView's prop *scrollRenderAheadDistance* as they can be in conflict with one another.
 
 ## FAQ
 
@@ -65,7 +65,7 @@ Unfortunately no. Instead what SGListView does is to dump the internal view of c
 
 We keep cells around because we wanted SGListView to be a high-fidelity drop-in replacement for ListView - which meant sacrificing performance for compatibility.
 
-We wanted pixel perfection between ListView and SGListView. This meant that we had to rely on ListView's underlying CSS engine to keep pixel level fidelity between ListView layouts and SGListView layouts. With flexbox styling, removing a cell from a grid can cause a reflow of all remaining cells and therefore could mess with design fidelity.
+We wanted pixel perfection between ListView and SGListView. This meant that we had to rely on ListView's underlying CSS engine to keep pixel level fidelity between ListView layouts and SGListView layouts. With flexbox styling, removing a cell from a grid can cause a reflow of all remaining cells and therefore could mess with design fidelity; keeping the bounding box resolved any and all layout concerns. 
 
 ### Why didn't you wrap a UICollectionView / UITableView?
 
