@@ -1,36 +1,72 @@
 # React Native SGListView
 
-SGListView is memory minded implementation of the React Native's ListView.
+SGListView is a memory minded implementation of the React Native's ListView.
 
 ## The Problem
 
-The React Native team has done a tremendous job building a robust platform. One oversight is the memory performance of their ListView implementation.
-
-Using React Native's UIExplorer app, if we scroll the ListView paging example down to the 99th row, we can that memory continually increases as the list view's size and number of rows increases.
-
-On a memory-constrained mobile device, this behavior can be a deal breaker for many.
+The React Native team has done a tremendous job building a robust platform. One oversight, is the memory performance of their ListView implementation. When scrolling down long lists, the memory footprint increases linearly and will eventually exhaust the platform the app is running on. On a memory-constrained mobile device, this behavior can be a deal breaker for many.
 
 ![Native ListView Performance](http://cl.ly/image/0K2E4047352Z/ListView-196.png.png)
+An example of ListView performance for long lists.
 
 ## The Solution
 
-SGListView resolves React Native's ListView memory problem by better controlling what's being drawn to the screen. Replaying the example above, this time swapping `ListView` for `SGListView` we can see that memory has been kept in check.
+SGListView resolves React Native's ListView memory problem by controlling what's being drawn to the screen. When cells are scrolled off screen, the cells intelligently flush their internal view and only retain their bounding box resulting in huge performance and memory gains.
 
-  * #### React Native ListView ended at: 405MB
-  * #### React Native SGListView ended at: 158MB
+  * React Native ListView ended at: **405MB**
+  * React Native SGListView ended at: **158MB**
 
 ![SGListView Performance](http://cl.ly/image/07190k0r041B/JSListView-196.png)
+An example of SGListView performance for long lists.
 
-### Points of Note
-
-It should be noted that SGListView
 
 ## Installation
 
+Install via npm
+
+```
+npm install XXX --save
+```
+
 ## Usage
+
+SGListView was designed to be a zero-fuss drop-in replacement for ListView. Simply import the package and change references to `ListView` to `SGListView`. Nothing else. No fuss, no muss.
+
+Import SGListView
+
+```
+var SGListView = require('SGListView');
+```
+
+Change references from `ListView` to `SGListView`.
+
+From:
+```
+<ListView ... />
+```
+To:
+```
+<SGListView ... />
+```
+
+Done.
 
 ## FAQ
 
-### Why didn't you wrap a UICollectionView/UITableView?
+### Does this approach reuse cells?
+
+Unfortunately no. Instead what SGListView does is to dump the internal view of cells as they scroll off screen, so that only a simple bounding box of the cell remains in memory. 
+
+### Why do you keep cells around when they go off screen? Why don't you just remove them?
+
+We keep cells around because we wanted SGListView to be a high-fidelity drop-in replacement for ListView - which meant sacrificing performance for compatibility.
+
+We wanted pixel perfection between ListView and SGListView This means that we had to rely on ListView's underlying CSS engine to keep pixel level fidelity between ListView layouts and SGListView layouts. With flexbox styling, removing a cell from a grid can cause a reflow of all remaining cells and therefore could mess with design fidelity.
+
+### Why didn't you wrap a UICollectionView / UITableView?
+
+One key goal for this project was to make the final solution platform independent. Using an underlying UICollectionView or UITableView would've tied the implementation to Apple and was something we worked to avoid.
 
 ## Authors
+
+Shaheen Ghiassy <shaheen.ghiassy@gmail.com>
