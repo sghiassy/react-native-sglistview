@@ -32,7 +32,7 @@ SGListView was designed to be a developer-friendly drop-in replacement for ListV
 Import SGListView
 
 ```
-var SGListView = require('SGListView');
+var SGListView = require('react-native-sglistview');
 ```
 
 Change references from `ListView` to `SGListView`.
