@@ -11,10 +11,7 @@ An example of ListView performance for long lists.
 
 ## The Solution
 
-SGListView resolves React Native's ListView memory problem by controlling what's being drawn to the screen and what's kept in memory. When cells are scrolled off screen, SGListView intelligently flushes their internal view and only retain the cell's existing bounding box - resulting in huge performance and memory gains.
-
-  * React Native ListView scrolling down 200 rows took: **405MB**
-  * React Native SGListView scrolling down 200 rows took: **158MB**
+SGListView resolves React Native's ListView memory problem by controlling what's being drawn to the screen and what's kept in memory. When cells are scrolled off screen, SGListView intelligently flushes their internal view and only retain the cell's existing bounding box - resulting in huge memory gains.
 
 ![SGListView Performance](http://cl.ly/image/3e2y0a1C1n0K/After.png)
 An example of SGListView performance for long lists.
