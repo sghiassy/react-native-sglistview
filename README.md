@@ -6,7 +6,7 @@ SGListView is a memory minded implementation of the React Native's ListView.
 
 The React Native team has done a tremendous job building a robust platform. One oversight, is the memory performance of their ListView implementation. When scrolling down long lists, the memory footprint increases linearly and will eventually exhaust all available memory. On a device as memory-constrained as a mobile device, this behavior can be a deal breaker for many.
 
-![Native ListView Performance](http://cl.ly/image/0K2E4047352Z/ListView-196.png.png)
+![Native ListView Performance](http://cl.ly/image/1E1Q2M2x1Y3F/Before.png)
 An example of ListView performance for long lists.
 
 ## The Solution
@@ -16,7 +16,7 @@ SGListView resolves React Native's ListView memory problem by controlling what's
   * React Native ListView scrolling down 200 rows took: **405MB**
   * React Native SGListView scrolling down 200 rows took: **158MB**
 
-![SGListView Performance](http://cl.ly/image/07190k0r041B/JSListView-196.png)
+![SGListView Performance](http://cl.ly/image/3e2y0a1C1n0K/After.png)
 An example of SGListView performance for long lists.
 
 
@@ -65,7 +65,7 @@ Unfortunately no. Instead what SGListView does is to dump the internal view of c
 
 We keep cells around because we wanted SGListView to be a high-fidelity drop-in replacement for ListView - which meant sacrificing performance for compatibility.
 
-We wanted pixel perfection between ListView and SGListView. This meant that we had to rely on ListView's underlying CSS engine to keep pixel level fidelity between ListView layouts and SGListView layouts. With flexbox styling, removing a cell from a grid can cause a reflow of all remaining cells and therefore could mess with design fidelity; keeping the bounding box resolved any and all layout concerns. 
+We wanted pixel perfection between ListView and SGListView. This meant that we had to rely on ListView's underlying CSS engine to keep pixel level fidelity between ListView layouts and SGListView layouts. With flexbox styling, removing a cell from a grid can cause a reflow of all remaining cells and therefore could mess with design fidelity; keeping the bounding box resolved any and all layout concerns.
 
 ### Why didn't you wrap a UICollectionView / UITableView?
 
