@@ -70,6 +70,10 @@ We wanted pixel perfection between ListView and SGListView. This meant that we h
 
 One key goal for this project was to make the final solution platform independent. Using an underlying UICollectionView or UITableView would've tied the implementation to iOS's UIKit and was something we worked to avoid.
 
+## Notice
+
+This is alpha-version code; use skeptically.
+
 ## Authors
 
 Shaheen Ghiassy <shaheen.ghiassy@gmail.com>
