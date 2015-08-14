@@ -15,7 +15,8 @@
     "email" : "shaheen.ghiassy@gmail.com",
     "url" : "http://shaheenghiassy.com"
   },
-  "license": "ISC",
+  "license": "MIT",
+  "homepage": "https://github.com/sghiassy/react-native-sglistview",
   "peerDependencies": {
     "react-native": ">=0.4.0"
   }
