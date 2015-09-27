@@ -11,13 +11,16 @@
     "ListView"
   ],
   "author": {
-    "name" : "Shaheen Ghiassy",
-    "email" : "shaheen.ghiassy@gmail.com",
-    "url" : "http://shaheenghiassy.com"
+    "name": "Shaheen Ghiassy",
+    "email": "shaheen.ghiassy@gmail.com",
+    "url": "http://shaheenghiassy.com"
   },
   "license": "MIT",
   "homepage": "https://github.com/sghiassy/react-native-sglistview",
   "peerDependencies": {
     "react-native": ">=0.4.0"
+  },
+  "dependencies": {
+    "interval-tree-1d": "^1.0.3"
   }
 }
