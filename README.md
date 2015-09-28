@@ -21,7 +21,7 @@ An example of SGListView performance for long lists.
 
 Install via npm
 
-```
+```bash
 npm install react-native-sglistview --save
 ```
 
@@ -31,18 +31,18 @@ SGListView was designed to be a developer-friendly drop-in replacement for ListV
 
 Import SGListView
 
-```
+```js
 var SGListView = require('react-native-sglistview');
 ```
 
 Change references from `ListView` to `SGListView`.
 
 From:
-```
+```jsx
 <ListView ... />
 ```
 To:
-```
+```jsx
 <SGListView ... />
 ```
 
@@ -77,3 +77,64 @@ This is alpha-version code; use skeptically.
 ## Authors
 
 Shaheen Ghiassy <shaheen.ghiassy@gmail.com>
+
+## Contributing
+
+Every attempt will be made to review PRs promptly. In addition please follow the below style guide
+
+### Contributing Style Guide
+
+#### Annotate Logic Tests
+
+Use variables / BOOLean values to better annotate logic tests. This makes code more readable and maintainable.
+
+Instead of
+
+```js
+if (evt.x >= box.x1 && evt.x <= box.x2) {
+```
+
+do
+
+```js
+var userClickedInsideBox = evt.x >= box.x1 && evt.x <= box.x2;
+
+if (userClickedInsideBox) {
+```
+
+#### Semicolons?
+
+Yes, semicolons are required. The lack of semicolons in JS lead to obsure ASI bugs [link](http://stackoverflow.com/questions/444080/do-you-recommend-using-semicolons-after-every-statement-in-javascript) and [Douglas Crockford says to use them](http://javascript.crockford.com/code.html).
+
+#### Brackets are required
+
+Yup
+
+#### Brackets on the same line
+
+Do
+
+```js
+if (test === true) {
+```
+
+Not
+
+```js
+if (test === true)
+{
+```
+
+#### If spacing
+
+Do
+
+```js
+if (test === true) {
+```
+
+Not
+
+```js
+if( test===true ){
+```
