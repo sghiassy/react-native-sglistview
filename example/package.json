@@ -7,6 +7,7 @@
     "x": "open ios/example.xcodeproj"
   },
   "dependencies": {
-    "react-native": "^0.21.0"
+    "react-native": "^0.21.0",
+    "react-native-sglistview": "^0.1.3"
   }
 }
