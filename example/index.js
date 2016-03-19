@@ -1,16 +1,6 @@
-/**
- * Sample React Native App
- * https://github.com/facebook/react-native
- */
 'use strict';
-import React, {
-  AppRegistry,
-  Component,
-  ListView,
-  StyleSheet,
-  Text,
-  View
-} from 'react-native';
+
+import React, { AppRegistry, Component, ListView, StyleSheet, Text, View } from 'react-native';
 
 class example extends Component {
 
