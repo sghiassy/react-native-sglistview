@@ -3,6 +3,7 @@
 import React, { AppRegistry, Component, ListView, StyleSheet, Text, View } from 'react-native';
 import ClientId from './config/clientId';
 import http from 'superagent';
+import Card from './src/Card';
 
 class example extends Component {
 
@@ -23,14 +24,14 @@ class example extends Component {
       lng: -122.681944
     };
 
-    this.getDeals();
+    this.fetchDeals();
   }
 
   getDataSource() {
     var dataSource = new ListView.DataSource(
       {rowHasChanged: (r1, r2) => r1.uuid !== r2.uuid});
 
-    var deals = this.props.deals;
+    var deals = this.state.deals;
     return deals ? dataSource.cloneWithRows(this.state.deals) : dataSource;
   }
 
@@ -38,26 +39,34 @@ class example extends Component {
     return (
       <ListView
         dataSource={this.getDataSource()}
-        renderRow={(rowData) => <Text>{rowData}</Text>}
+        renderRow={this.renderRow}
       />
     );
   }
 
-  getDeals() {
+  fetchDeals() {
     var self = this;
-    var query = "https://api.groupon.com/cards/v1/search?offset=" + this.cache.offset
-                      + "&client_id=" + ClientId.clientId
-                      + "&client_version_id=" + ClientId.clientVersion
-                      + "&ell=" + this.cache.lat + "%2C" + this.cache.lng
-                      + "&limit=" + this.cache.limit + "&locale=en_US&page_type=featured&platform=iphonecon&secure_assets=false&show=deals%28default%2CstartRedemptionAt%2CendRedemptionAt%2Coptions%28images%2Ctrait%2CpricingMetadata%29%2Clocations%2Ctraits%2Cgrid4ImageUrl%2ClargeImageUrl%2CsidebarImageUrl%2Cchannels%2Cimages%2Cmerchant%28recommendations%29%29%3B_badges&sort=relevance";
+    let query = "https://api.groupon.com/v2/deals?offset=" + this.cache.offset +
+                      "&client_id=" + ClientId.clientId +
+                      "&client_version_id=" + ClientId.clientVersion +
+                      "&division_id=portland&include_travel_bookable_deals=true&lang=en" +
+                      "&lat=" + this.cache.lat +
+                      "&limit=" + this.cache.limit +
+                      "&lng=" + this.cache.lng + "&location_time=2015-06-09T22%3A56%3A19Z&metadata=true&secure_assets=false&show=id%2Ctitle%2CplacementPriority%2CsidebarImageUrl%2CendAt%2CdealTypes%2Cmerchant%2CisSoldOut%2CsoldQuantity%2CsoldQuantityMessage%2Cstatus%2Coptions%28images%2Ctrait%2CpricingMetadata%2CschedulerOptions%29%2CannouncementTitle%2ClargeImageUrl%2Cgrid4ImageUrl%2Cgrid6ImageUrl%2CmediumImageUrl%2CshippingAddressRequired%2CredemptionLocation%2Cchannels%2CdealUrl%2Cdivision%2CpitchHtml%2ChighlightsHtml%2CisEarly%2CisExtended%2CredemptionLocations%2CisTipped%2CtippingPoint%2ClocationNote%2CspecificAttributes%2CisTravelBookableDeal%2CisMerchandisingDeal%2Cdefault%2Cuuid%2Ctraits%2Cimages&zero_day=true";
 
 
     http.get(query)
      .end((err, res) => {
-       if (err) { return callback(err, undefined) };
+       if (err) { self.setState({deals:undefined}); return; };
 
-       self.setState({deals:res.body});
+       self.setState({deals:res.body.deals});
      });
+  }
+
+  renderRow(rowData, sectionID, rowID) {
+    return (
+      <Card deal={rowData} />
+    );
   }
 }
 
