@@ -1,2 +1,50 @@
-node_modules/
-.DS_Store
+syntax: glob
+
+# Mac OS X
+**DS_Store
+
+# Xcode
+*.mode1v3
+*.pbxuser
+*.xccheckout
+*.moved-aside
+*.mode2v3
+xcuserdata
+*.perspectivev3
+project.xcworkspace
+Groupon.xcworkspace/xcshareddata/Groupon.xccheckout
+*.xcscmblueprint
+
+# AppCode
+.idea/
+
+#Generated files
+*.pyc
+
+# Temporary files
+*.swp
+
+# Other
+build*
+data_archive*
+*.kpf
+*.wpr
+*.wpu
+*.db
+*.rej
+*.orig
+3rd_party
+DerivedData/
+GrouponUITests/odo
+GrouponUITests/Deeplink
+GrouponUITests/OfflineRepository
+
+# Carthage
+Carthage/Build
+# We have to unignore certain frameworks that come as pre-packaged.
+# Note: We HAVE to ignore ALL swift frameworks before Swift 3.0, that's why this is opt-in
+!Carthage/Build/iOS/Realm.framework
+!Carthage/Build/iOS/Realm.dsym
+
+# ignore the config.js file since it contains sensitve information
+example/config/clientId.js
