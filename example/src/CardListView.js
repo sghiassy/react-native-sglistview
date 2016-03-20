@@ -1,6 +1,6 @@
 'use strict';
 
-import Card from './Card';
+import Card from './subviews/Card';
 import React, { ListView, StyleSheet } from 'react-native';
 
 class CardListView extends React.Component {
