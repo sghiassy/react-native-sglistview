@@ -29,8 +29,18 @@ class CardList extends React.Component {
     return (
       <CardListView
         deals={this.state.deals}
+        onEndReached={this.onEndReached.bind(this)}
         {...this.cache} />
     );
+  }
+
+  onEndReached() {
+    this.cache.offset += 10;
+    var self = this;
+
+    DataSource.fetch(this.cache, (err, res) => {
+      self.setState({deals:self.state.deals.concat(res.body.deals)}); // concat deals to the end of the array
+    });
   }
 }
 

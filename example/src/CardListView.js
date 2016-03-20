@@ -9,6 +9,7 @@ class CardListView extends React.Component {
       <ListView
         dataSource={this.getDataSource()}
         renderRow={this.renderRow}
+        onEndReached={this.props.onEndReached}
       />
     );
   }
