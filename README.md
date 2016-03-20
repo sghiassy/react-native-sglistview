@@ -50,6 +50,10 @@ Done.
 
 **NOTE**: You still create the datasource using ListView (i.e.: `var dataSource = new ListView.DataSource(...)`)
 
+## Methods
+
+  * **getNativeListView**: Get the underlying `ListView` element from `SGListView`.
+
 ## Options
 
   * **premptiveLoading (type: integer)**: SGListView will dump the internal view of each cell as it goes off the screen. Conversely, when the cell comes back on the screen, we repopulate the cell with its view. If this transition happens too late in the process, the user will see a flash on screen as the cell transitions from a blank bounding box to its full view representation. SGListView prevents this from happening by preemptively loading cells before they come on screen. By default, we load 2 cells in the future before they come on screen. SGListView allows you to override the number of cells to load preemptively through the prop *premptiveLoading*. **Note**: Because of this logic, its advised not to use ListView's prop *scrollRenderAheadDistance* as they can be in conflict with one another.
