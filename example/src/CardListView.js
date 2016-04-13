@@ -13,6 +13,9 @@ class CardListView extends React.Component {
         dataSource={this.getDataSource()}
         renderRow={this.renderRow}
         onEndReached={this.props.onEndReached}
+        onPullToRefresh={(sglistview)=>{
+          sglistview.turnOffRefreshControl();
+        }}
         ref={LIST_VIEW}
       />
     );
