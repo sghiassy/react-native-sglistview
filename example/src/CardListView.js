@@ -9,10 +9,11 @@ var LIST_VIEW = "listview";
 class CardListView extends React.Component {
   render() {
     return (
-      <SGListView
+      <ListView
         dataSource={this.getDataSource()}
         renderRow={this.renderRow}
         onEndReached={this.props.onEndReached}
+        
         onPullToRefresh={(sglistview)=>{
           sglistview.turnOffRefreshControl();
         }}
@@ -30,6 +31,7 @@ class CardListView extends React.Component {
   }
 
   renderRow(rowData, sectionID, rowID) {
+    console.log("rendering rowId:" + rowID + " data:" + rowData.title)
     return (
       <Card deal={rowData} />
     );

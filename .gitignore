@@ -45,6 +45,3 @@ Carthage/Build
 # Note: We HAVE to ignore ALL swift frameworks before Swift 3.0, that's why this is opt-in
 !Carthage/Build/iOS/Realm.framework
 !Carthage/Build/iOS/Realm.dsym
-
-# ignore the config.js file since it contains sensitve information
-example/config/clientId.js
