@@ -1,6 +1,7 @@
 'use strict';
 
-import React, { AppRegistry, StyleSheet } from 'react-native';
+import React from 'react';
+import { AppRegistry, StyleSheet } from 'react-native';
 import CardList from './src/CardListController';
 
 class example extends React.Component {

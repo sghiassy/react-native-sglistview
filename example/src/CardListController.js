@@ -1,6 +1,7 @@
 'use strict';
 
-import React, { ListView, StyleSheet, Text, View } from 'react-native';
+import React from 'react';
+import { ListView, StyleSheet, Text, View } from 'react-native';
 import DataSource from './CardListDataSource';
 import CardListView from './CardListView';
 
@@ -21,7 +22,8 @@ class CardList extends React.Component {
     };
 
     DataSource.fetch(this.cache, (err, res) => {
-      self.setState({deals:res.body.deals});
+      if (err) console.warn(err);
+      else self.setState({deals:res.body.deals});
     });
   }
 
@@ -39,7 +41,8 @@ class CardList extends React.Component {
     var self = this;
 
     DataSource.fetch(this.cache, (err, res) => {
-      self.setState({deals:self.state.deals.concat(res.body.deals)}); // concat deals to the end of the array
+      if (err) console.warn(err);
+      else self.setState({deals:self.state.deals.concat(res.body.deals)}); // concat deals to the end of the array
     });
   }
 }

@@ -1,7 +1,8 @@
 'use strict';
 
 import Card from './subviews/Card';
-import React, { StyleSheet, ListView } from 'react-native';
+import React from 'react';
+import { StyleSheet, ListView } from 'react-native';
 import SGListView from 'react-native-sglistview';
 
 var LIST_VIEW = "listview";
