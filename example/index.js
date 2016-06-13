@@ -1,6 +1,6 @@
 'use strict';
 
-import React from 'react';
+import React from 'React';
 import { AppRegistry, StyleSheet } from 'react-native';
 import CardList from './src/CardListController';
 
@@ -21,4 +21,4 @@ const styles = StyleSheet.create({
   },
 });
 
-AppRegistry.registerComponent('example', () => example);
+AppRegistry.registerComponent('AwesomeProject', () => example);

@@ -13,6 +13,7 @@
 #import "RCTDevLoadingView.h"
 #import "RCTDefines.h"
 #import "RCTUtils.h"
+#import "RCTModalHostViewController.h"
 
 #if RCT_DEV
 
@@ -37,6 +38,13 @@ RCT_EXPORT_MODULE()
 - (void)dealloc
 {
   [[NSNotificationCenter defaultCenter] removeObserver:self];
+}
+
+- (instancetype)init
+{
+  // We're only overriding this to ensure the module gets created at startup
+  // TODO (t11106126): Remove once we have more declarative control over module setup.
+  return [super init];
 }
 
 - (void)setBridge:(RCTBridge *)bridge
@@ -68,12 +76,14 @@ RCT_EXPORT_METHOD(showMessage:(NSString *)message color:(UIColor *)color backgro
       _window = [[UIWindow alloc] initWithFrame:CGRectMake(0, 0, screenWidth, 22)];
       _window.windowLevel = UIWindowLevelStatusBar + 1;
 
+      // set a root VC so rotation is supported
+      _window.rootViewController = [UIViewController new];
+
       _label = [[UILabel alloc] initWithFrame:_window.bounds];
       _label.font = [UIFont systemFontOfSize:12.0];
       _label.textAlignment = NSTextAlignmentCenter;
 
       [_window addSubview:_label];
-      [_window makeKeyAndVisible];
     }
 
     _label.text = message;

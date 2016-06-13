@@ -55,7 +55,9 @@
   UIView *testView = self;
   UIView *clipView = nil;
   CGRect clipRect = self.bounds;
-  while (testView) {
+  // We will only look for a clipping view up the view hierarchy until we hit the root view.
+  BOOL passedRootView = NO;
+  while (testView && !passedRootView) {
     if (testView.clipsToBounds) {
       if (clipView) {
         CGRect testRect = [clipView convertRect:clipRect toView:testView];
@@ -67,6 +69,9 @@
         clipView = testView;
         clipRect = [self convertRect:self.bounds toView:clipView];
       }
+    }
+    if ([testView isReactRootView]) {
+      passedRootView = YES;
     }
     testView = testView.superview;
   }
@@ -109,6 +114,7 @@ static NSString *RCTRecursiveAccessibilityLabel(UIView *view)
     _borderBottomLeftRadius = -1;
     _borderBottomRightRadius = -1;
     _borderStyle = RCTBorderStyleSolid;
+    _hitTestEdgeInsets = UIEdgeInsetsZero;
 
     _backgroundColor = super.backgroundColor;
   }
@@ -178,6 +184,15 @@ RCT_NOT_IMPLEMENTED(- (instancetype)initWithCoder:unused)
       RCTLogError(@"Invalid pointer-events specified %zd on %@", _pointerEvents, self);
       return hitSubview ?: hitView;
   }
+}
+
+- (BOOL)pointInside:(CGPoint)point withEvent:(UIEvent *)event
+{
+  if (UIEdgeInsetsEqualToEdgeInsets(self.hitTestEdgeInsets, UIEdgeInsetsZero)) {
+    return [super pointInside:point withEvent:event];
+  }
+  CGRect hitFrame = UIEdgeInsetsInsetRect(self.bounds, self.hitTestEdgeInsets);
+  return CGRectContainsPoint(hitFrame, point);
 }
 
 - (BOOL)accessibilityActivate

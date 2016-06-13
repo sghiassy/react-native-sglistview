@@ -125,6 +125,25 @@ static vm_size_t RCTGetResidentMemorySize(void)
 
 RCT_EXPORT_MODULE()
 
+- (instancetype)init
+{
+  // We're only overriding this to ensure the module gets created at startup
+  // TODO (t11106126): Remove once we have more declarative control over module setup.
+  return [super init];
+}
+
+- (dispatch_queue_t)methodQueue
+{
+  return dispatch_get_main_queue();
+}
+
+- (void)setBridge:(RCTBridge *)bridge
+{
+  _bridge = bridge;
+
+  [_bridge.devMenu addItem:self.devMenuItem];
+}
+
 - (void)invalidate
 {
   [self hide];
@@ -270,18 +289,6 @@ RCT_EXPORT_MODULE()
   }
 
   return _metrics;
-}
-
-- (dispatch_queue_t)methodQueue
-{
-  return dispatch_get_main_queue();
-}
-
-- (void)setBridge:(RCTBridge *)bridge
-{
-  _bridge = bridge;
-
-  [_bridge.devMenu addItem:self.devMenuItem];
 }
 
 - (void)show
@@ -501,12 +508,18 @@ RCT_EXPORT_MODULE()
 
 - (void)loadPerformanceLoggerData
 {
-  NSMutableArray *data = [NSMutableArray new];
-  NSArray *times = RCTPerformanceLoggerOutput();
   NSUInteger i = 0;
+  NSMutableArray<NSString *> *data = [NSMutableArray new];
+  NSArray<NSNumber *> *values = RCTPerformanceLoggerOutput();
   for (NSString *label in RCTPerformanceLoggerLabels()) {
-    [data addObject:[NSString stringWithFormat:@"%@: %lldus", label,
-                     [times[i+1] longLongValue] - [times[i] longLongValue]]];
+    long long value = values[i+1].longLongValue - values[i].longLongValue;
+    NSString *unit = @"ms";
+    if ([label hasSuffix:@"Size"]) {
+      unit = @"b";
+    } else if ([label hasSuffix:@"Count"]) {
+      unit = @"";
+    }
+    [data addObject:[NSString stringWithFormat:@"%@: %lld%@", label, value, unit]];
     i += 2;
   }
   _perfLoggerMarks = [data copy];

@@ -25,7 +25,7 @@ var View = require('View');
 
 var ensureComponentIsNative = require('ensureComponentIsNative');
 var ensurePositiveDelayProps = require('ensurePositiveDelayProps');
-var keyOf = require('keyOf');
+var keyOf = require('fbjs/lib/keyOf');
 var merge = require('merge');
 var onlyChild = require('onlyChild');
 
@@ -94,7 +94,7 @@ var TouchableHighlight = React.createClass({
   getDefaultProps: () => DEFAULT_PROPS,
 
   // Performance optimization to avoid constantly re-generating these objects.
-  computeSyntheticState: function(props) {
+  _computeSyntheticState: function(props) {
     return {
       activeProps: {
         style: {
@@ -115,7 +115,7 @@ var TouchableHighlight = React.createClass({
 
   getInitialState: function() {
     return merge(
-      this.touchableGetInitialState(), this.computeSyntheticState(this.props)
+      this.touchableGetInitialState(), this._computeSyntheticState(this.props)
     );
   },
 
@@ -133,7 +133,7 @@ var TouchableHighlight = React.createClass({
     if (nextProps.activeOpacity !== this.props.activeOpacity ||
         nextProps.underlayColor !== this.props.underlayColor ||
         nextProps.style !== this.props.style) {
-      this.setState(this.computeSyntheticState(nextProps));
+      this.setState(this._computeSyntheticState(nextProps));
     }
   },
 
@@ -176,6 +176,10 @@ var TouchableHighlight = React.createClass({
     return this.props.pressRetentionOffset || PRESS_RETENTION_OFFSET;
   },
 
+  touchableGetHitSlop: function() {
+    return this.props.hitSlop;
+  },
+
   touchableGetHighlightDelayMS: function() {
     return this.props.delayPressIn;
   },
@@ -213,9 +217,9 @@ var TouchableHighlight = React.createClass({
 
   _hasPressHandler: function() {
     return !!(
-      this.props.onPress || 
-      this.props.onPressIn || 
-      this.props.onPressOut || 
+      this.props.onPress ||
+      this.props.onPressIn ||
+      this.props.onPressOut ||
       this.props.onLongPress
     );
   },
@@ -230,6 +234,7 @@ var TouchableHighlight = React.createClass({
         ref={UNDERLAY_REF}
         style={this.state.underlayStyle}
         onLayout={this.props.onLayout}
+        hitSlop={this.props.hitSlop}
         onStartShouldSetResponder={this.touchableHandleStartShouldSetResponder}
         onResponderTerminationRequest={this.touchableHandleResponderTerminationRequest}
         onResponderGrant={this.touchableHandleResponderGrant}
@@ -243,6 +248,7 @@ var TouchableHighlight = React.createClass({
             ref: CHILD_REF,
           }
         )}
+        {Touchable.renderDebugView({color: 'green', hitSlop: this.props.hitSlop})}
       </View>
     );
   }

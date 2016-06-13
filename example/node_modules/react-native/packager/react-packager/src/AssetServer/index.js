@@ -13,12 +13,24 @@ const Promise = require('promise');
 const crypto = require('crypto');
 const declareOpts = require('../lib/declareOpts');
 const fs = require('fs');
-const getAssetDataFromName = require('../DependencyResolver/lib/getAssetDataFromName');
+const getAssetDataFromName = require('node-haste').getAssetDataFromName;
 const path = require('path');
 
-const stat = Promise.denodeify(fs.stat);
-const readDir = Promise.denodeify(fs.readdir);
-const readFile = Promise.denodeify(fs.readFile);
+const createTimeoutPromise = (timeout) => new Promise((resolve, reject) => {
+  setTimeout(reject, timeout, 'fs operation timeout');
+});
+function timeoutableDenodeify(fsFunc, timeout) {
+  return function raceWrapper(...args) {
+    return new Promise.race([
+      createTimeoutPromise(timeout),
+      Promise.denodeify(fsFunc).apply(this, args)
+    ]);
+  };
+}
+
+const stat = timeoutableDenodeify(fs.stat, 5000);
+const readDir = timeoutableDenodeify(fs.readdir, 5000);
+const readFile = timeoutableDenodeify(fs.readFile, 5000);
 
 const validateOpts = declareOpts({
   projectRoots: {
@@ -39,7 +51,7 @@ class AssetServer {
   }
 
   get(assetPath, platform = null) {
-    const assetData = getAssetDataFromName(assetPath);
+    const assetData = getAssetDataFromName(assetPath, new Set([platform]));
     return this._getAssetRecord(assetPath, platform).then(record => {
       for (let i = 0; i < record.scales.length; i++) {
         if (record.scales[i] >= assetData.resolution) {
@@ -52,7 +64,7 @@ class AssetServer {
   }
 
   getAssetData(assetPath, platform = null) {
-    const nameData = getAssetDataFromName(assetPath);
+    const nameData = getAssetDataFromName(assetPath, new Set([platform]));
     const data = {
       name: nameData.name,
       type: nameData.type,
@@ -103,7 +115,7 @@ class AssetServer {
       .then(res => {
         const dir = res[0];
         const files = res[1];
-        const assetData = getAssetDataFromName(filename);
+        const assetData = getAssetDataFromName(filename, new Set([platform]));
 
         const map = this._buildAssetMap(dir, files, platform);
 
@@ -129,16 +141,24 @@ class AssetServer {
   _findRoot(roots, dir) {
     return Promise.all(
       roots.map(root => {
-        const absPath = path.join(root, dir);
+        const absRoot = path.resolve(root);
+        // important: we want to resolve root + dir
+        // to ensure the requested path doesn't traverse beyond root
+        const absPath = path.resolve(root, dir);
         return stat(absPath).then(fstat => {
-          return {path: absPath, isDirectory: fstat.isDirectory()};
-        }, err => {
-          return {path: absPath, isDirectory: false};
+          // keep asset requests from traversing files
+          // up from the root (e.g. ../../../etc/hosts)
+          if (!absPath.startsWith(absRoot)) {
+            return {path: absPath, isValid: false};
+          }
+          return {path: absPath, isValid: fstat.isDirectory()};
+        }, _ => {
+          return {path: absPath, isValid: false};
         });
       })
     ).then(stats => {
       for (let i = 0; i < stats.length; i++) {
-        if (stats[i].isDirectory) {
+        if (stats[i].isValid) {
           return stats[i].path;
         }
       }
@@ -146,8 +166,8 @@ class AssetServer {
     });
   }
 
-  _buildAssetMap(dir, files) {
-    const assets = files.map(getAssetDataFromName);
+  _buildAssetMap(dir, files, platform) {
+    const assets = files.map(this._getAssetDataFromName.bind(this, new Set([platform])));
     const map = Object.create(null);
     assets.forEach(function(asset, i) {
       const file = files[i];
@@ -173,6 +193,10 @@ class AssetServer {
     });
 
     return map;
+  }
+  
+  _getAssetDataFromName(platform, file) {
+    return getAssetDataFromName(file, platform);
   }
 }
 

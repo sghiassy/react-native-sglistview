@@ -1,6 +1,5 @@
-var React = require('react-native');
-var { Text, View } = React;
-var PropTypes = React.PropTypes;
+import React, {PropTypes} from 'react';
+import { Text, View } from 'react-native';
 
 var SGListViewCell = React.createClass({
 

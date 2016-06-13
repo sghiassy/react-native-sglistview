@@ -68,7 +68,18 @@ RCT_NOT_IMPLEMENTED(- (instancetype)initWithCoder:(NSCoder *)aDecoder)
 
 - (void)reload
 {
-  [_webView reload];
+  NSURLRequest *request = [RCTConvert NSURLRequest:self.source];
+  if (request.URL && !_webView.request.URL.absoluteString.length) {
+    [_webView loadRequest:request];
+  }
+  else {
+    [_webView reload];
+  }
+}
+
+- (void)stopLoading
+{
+  [_webView stopLoading];
 }
 
 - (void)setSource:(NSDictionary *)source
@@ -80,6 +91,9 @@ RCT_NOT_IMPLEMENTED(- (instancetype)initWithCoder:(NSCoder *)aDecoder)
     NSString *html = [RCTConvert NSString:source[@"html"]];
     if (html) {
       NSURL *baseURL = [RCTConvert NSURL:source[@"baseUrl"]];
+      if (!baseURL) {
+        baseURL = [NSURL URLWithString:@"about:blank"];
+      }
       [_webView loadHTMLString:html baseURL:baseURL];
       return;
     }
@@ -113,6 +127,19 @@ RCT_NOT_IMPLEMENTED(- (instancetype)initWithCoder:(NSCoder *)aDecoder)
   [RCTView autoAdjustInsetsForView:self
                     withScrollView:_webView.scrollView
                       updateOffset:NO];
+}
+
+- (void)setScalesPageToFit:(BOOL)scalesPageToFit
+{
+  if (_webView.scalesPageToFit != scalesPageToFit) {
+    _webView.scalesPageToFit = scalesPageToFit;
+    [_webView reload];
+  }
+}
+
+- (BOOL)scalesPageToFit
+{
+  return _webView.scalesPageToFit;
 }
 
 - (void)setBackgroundColor:(UIColor *)backgroundColor
@@ -154,12 +181,25 @@ RCT_NOT_IMPLEMENTED(- (instancetype)initWithCoder:(NSCoder *)aDecoder)
 {
   BOOL isJSNavigation = [request.URL.scheme isEqualToString:RCTJSNavigationScheme];
 
+  static NSDictionary<NSNumber *, NSString *> *navigationTypes;
+  static dispatch_once_t onceToken;
+  dispatch_once(&onceToken, ^{
+    navigationTypes = @{
+      @(UIWebViewNavigationTypeLinkClicked): @"click",
+      @(UIWebViewNavigationTypeFormSubmitted): @"formsubmit",
+      @(UIWebViewNavigationTypeBackForward): @"backforward",
+      @(UIWebViewNavigationTypeReload): @"reload",
+      @(UIWebViewNavigationTypeFormResubmitted): @"formresubmit",
+      @(UIWebViewNavigationTypeOther): @"other",
+    };
+  });
+
   // skip this for the JS Navigation handler
   if (!isJSNavigation && _onShouldStartLoadWithRequest) {
     NSMutableDictionary<NSString *, id> *event = [self baseEvent];
     [event addEntriesFromDictionary: @{
       @"url": (request.URL).absoluteString,
-      @"navigationType": @(navigationType)
+      @"navigationType": navigationTypes[@(navigationType)]
     }];
     if (![self.delegate webView:self
       shouldStartLoadForRequest:event
@@ -175,7 +215,7 @@ RCT_NOT_IMPLEMENTED(- (instancetype)initWithCoder:(NSCoder *)aDecoder)
       NSMutableDictionary<NSString *, id> *event = [self baseEvent];
       [event addEntriesFromDictionary: @{
         @"url": (request.URL).absoluteString,
-        @"navigationType": @(navigationType)
+        @"navigationType": navigationTypes[@(navigationType)]
       }];
       _onLoadingStart(event);
     }
