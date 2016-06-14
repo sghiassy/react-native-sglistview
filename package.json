@@ -2,8 +2,9 @@
   "name": "react-native-sglistview",
   "version": "0.2.0",
   "description": "A React Native module to provide a memory efficent ListView over the native implementation",
-  "main": "index.js",
+  "main": "lib/index.js",
   "scripts": {
+    "build": "babel --source-maps=true --out-dir=build lib",
     "test": "echo \"Error: no test specified\" && exit 1",
     "x": "open example/ios/example.xcodeproj"
   },
@@ -12,14 +13,19 @@
     "ListView"
   ],
   "author": {
-    "name" : "Shaheen Ghiassy",
-    "email" : "shaheen.ghiassy@gmail.com",
-    "url" : "http://shaheenghiassy.com"
+    "name": "Shaheen Ghiassy",
+    "email": "shaheen.ghiassy@gmail.com",
+    "url": "http://shaheenghiassy.com"
   },
   "license": "MIT",
   "homepage": "https://github.com/sghiassy/react-native-sglistview",
   "peerDependencies": {
     "react-native": ">=0.25.0",
     "react": ">=0.14.0 || ^15.0.0"
+  },
+  "devDependencies": {
+    "babel-preset-es2015": "^6.9.0",
+    "babel-preset-react": "^6.5.0",
+    "babel-preset-stage-2": "^6.5.0",
   }
 }
