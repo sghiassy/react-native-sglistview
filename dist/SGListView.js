@@ -14,6 +14,143 @@ var _SGListViewCell2 = _interopRequireDefault(_SGListViewCell);
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
+/**
+ * Some methods are stored here. The benefit of doing so are:
+ * 1. The methods are truly private from the outside (unliked the _methodName pattern)
+ * 2. The methods aren't instantiated with every instance
+ * 3. They're static and hold 0 state
+ * 4. Keeps the class size smaller
+ */
+var PrivateMethods = {
+  captureReferenceFor: function captureReferenceFor(cellData, sectionId, rowId, row) {
+    if (cellData[sectionId] === undefined) {
+      cellData[sectionId] = {};
+    }
+
+    cellData[sectionId][rowId] = row; // Capture the reference
+  },
+
+
+  /**
+   * Go through the changed rows and update the cell with their new visibility state
+   */
+  updateCellsVisibility: function updateCellsVisibility(cellData, changedRows) {
+    changedRows.forEvery(function (section) {
+      if (changedRows.hasOwnProperty(section)) {
+        (function () {
+          // Good JS hygiene check
+          var currentSection = changedRows[section];
+
+          currentSection.forEvery(function (row) {
+            if (currentSection.hasOwnProperty(row)) {
+              // Good JS hygiene check
+              var currentCell = cellData[section][row];
+              var currentCellVisibility = currentSection[row];
+
+              // Set the cell's new visibility state
+              if (currentCell && currentCell.setVisibility) {
+                currentCell.setVisibility(currentCellVisibility);
+              }
+            }
+          });
+        })();
+      }
+    });
+  },
+
+
+  /**
+   * When the user is scrolling up or down - load the cells in the future to make it
+   * so the user doesn't see any flashing
+   */
+  updateCellsPremptively: function updateCellsPremptively(props, cellData, visibleRows) {
+    if (!props.premptiveLoading) {
+      return; // No need to run is preemptive loading is 0 or false
+    }
+
+    if (!cellData.premptiveLoadedCells) {
+      cellData.premptiveLoadedCells = [];
+    }
+
+    // Get the first and last visible rows
+    var firstVisibleRow = void 0;
+    var lastVisibleRow = void 0;
+    var firstVisibleSection = void 0;
+    var lastVisibleSection = void 0;
+
+    visibleRows.forEach(function (section) {
+      visibleRows[section].forEach(function (row) {
+        if (firstVisibleRow === undefined) {
+          firstVisibleSection = section;
+          firstVisibleRow = Number(row);
+        } else {
+          lastVisibleSection = section;
+          lastVisibleRow = Number(row);
+        }
+
+        /*
+         * Dont consider a cell preemptiveloaded if it is touched by default visibility logic.
+         */
+        var currentCell = cellData[section][row];
+        if (cellData.premptiveLoadedCells) {
+          var i = cellData.premptiveLoadedCells.indexOf(currentCell);
+          if (i >= 0) {
+            cellData.premptiveLoadedCells.splice(i, 1);
+          }
+        }
+      });
+    });
+
+    // Figure out if we're scrolling up or down
+    var isScrollingUp = cellData.firstVisibleRow > firstVisibleRow;
+    var isScrollingDown = cellData.lastVisibleRow < lastVisibleRow;
+
+    var scrollDirectionChanged = void 0;
+    if (isScrollingUp && cellData.lastScrollDirection === 'down') {
+      scrollDirectionChanged = true;
+    } else if (isScrollingDown && cellData.lastScrollDirection === 'up') {
+      scrollDirectionChanged = true;
+    }
+
+    // remove the other side's preemptive cells
+    if (scrollDirectionChanged) {
+      var cell = cellData.premptiveLoadedCells.pop();
+
+      while (cell != undefined) {
+        cell.setVisibility(false);
+        cell = cellData.premptiveLoadedCells.pop();
+      }
+    }
+
+    // Preemptively set cells
+    for (var i = 1; i <= props.premptiveLoading; i++) {
+      var _cell = void 0;
+
+      if (isScrollingUp) {
+        _cell = cellData[firstVisibleSection][firstVisibleRow - i];
+      } else if (isScrollingDown) {
+        _cell = cellData[lastVisibleSection][lastVisibleRow + i];
+      }
+
+      if (_cell) {
+        _cell.setVisibility(true);
+        cellData.premptiveLoadedCells.push(_cell);
+      } else {
+        break;
+      }
+    }
+
+    cellData.firstVisibleRow = firstVisibleRow; // cache the first seen row
+    cellData.lastVisibleRow = lastVisibleRow; // cache the last seen row
+
+    if (isScrollingUp) {
+      cellData.lastScrollDirection = 'up';
+    } else if (isScrollingDown) {
+      cellData.lastScrollDirection = 'down';
+    }
+  }
+};
+
 var SGListView = _react2.default.createClass({
   displayName: 'SGListView',
 
@@ -46,6 +183,7 @@ var SGListView = _react2.default.createClass({
     };
   },
 
+
   /**
    * View Lifecycle Methods
    */
@@ -58,6 +196,18 @@ var SGListView = _react2.default.createClass({
       lastVisibleRow: 0 };
   },
   // keep track of the last row rendered
+  onChangeVisibleRows: function onChangeVisibleRows(visibleRows, changedRows) {
+    // Update cell visibibility per the changedRows
+    PrivateMethods.updateCellsVisibility(this.cellData, changedRows);
+
+    // Premepty show rows to avoid onscreen flashes
+    PrivateMethods.updateCellsPremptively(this.props, this.cellData, visibleRows);
+
+    // If the user supplied an onChangeVisibleRows function, then call it
+    if (this.props.onChangeVisibleRows) {
+      this.props.onChangeVisibleRows(visibleRows, changedRows);
+    }
+  },
   getNativeListView: function getNativeListView() {
     return this.refs.nativeListView;
   },
@@ -73,22 +223,17 @@ var SGListView = _react2.default.createClass({
    * Render Methods
    */
 
-  render: function render() {
-    return _react2.default.createElement(_reactNative.ListView, _extends({}, this.props, {
-      ref: 'nativeListView',
-      renderScrollComponent: this.renderScrollComponent,
-      renderRow: this.renderRow,
-      onChangeVisibleRows: this.onChangeVisibleRows }));
-  },
-
   renderScrollComponent: function renderScrollComponent(props) {
-    if (props.renderScrollComponent) {
-      return props.renderScrollComponent(props);
-    } else {
-      return _react2.default.createElement(_reactNative.ScrollView, props);
-    }
-  },
+    var component = void 0;
 
+    if (props.renderScrollComponent) {
+      component = props.renderScrollComponent(props);
+    } else {
+      component = _react2.default.createElement(_reactNative.ScrollView, props);
+    }
+
+    return component;
+  },
   renderRow: function renderRow(rowData, sectionID, rowID) {
     var _this = this;
 
@@ -104,146 +249,14 @@ var SGListView = _react2.default.createClass({
         PrivateMethods.captureReferenceFor(_this.cellData, sectionID, rowID, row);
       } });
   },
-  onChangeVisibleRows: function onChangeVisibleRows(visibleRows, changedRows) {
-    // Update cell visibibility per the changedRows
-    PrivateMethods.updateCellsVisibility(this.cellData, changedRows);
-
-    // Premepty show rows to avoid onscreen flashes
-    PrivateMethods.updateCellsPremptively(this.props, this.cellData, visibleRows);
-
-    // If the user supplied an onChangeVisibleRows function, then call it
-    if (this.props.onChangeVisibleRows) {
-      this.props.onChangeVisibleRows(visibleRows, changedRows);
-    }
+  render: function render() {
+    return _react2.default.createElement(_reactNative.ListView, _extends({}, this.props, {
+      ref: 'nativeListView',
+      renderScrollComponent: this.renderScrollComponent,
+      renderRow: this.renderRow,
+      onChangeVisibleRows: this.onChangeVisibleRows }));
   }
 });
-
-/**
- * Some methods are stored here. The benefit of doing so are:
- * 1. The methods are truly private from the outside (unliked the _methodName pattern)
- * 2. The methods aren't instantiated with every instance
- * 3. They're static and hold 0 state
- * 4. Keeps the class size smaller
- */
-var PrivateMethods = {
-  captureReferenceFor: function captureReferenceFor(cellData, sectionId, rowId, row) {
-    if (cellData[sectionId] === undefined) {
-      cellData[sectionId] = {};
-    }
-
-    cellData[sectionId][rowId] = row; // Capture the reference
-  },
-
-  /**
-   * Go through the changed rows and update the cell with their new visibility state
-   */
-  updateCellsVisibility: function updateCellsVisibility(cellData, changedRows) {
-    for (var section in changedRows) {
-      if (changedRows.hasOwnProperty(section)) {
-        // Good JS hygiene check
-        var currentSection = changedRows[section];
-
-        for (var row in currentSection) {
-          if (currentSection.hasOwnProperty(row)) {
-            // Good JS hygiene check
-            var currentCell = cellData[section][row];
-            var currentCellVisibility = currentSection[row];
-
-            // Set the cell's new visibility state
-            if (currentCell && currentCell.setVisibility) {
-              currentCell.setVisibility(currentCellVisibility);
-            }
-          }
-        }
-      }
-    }
-  },
-
-  /**
-   * When the user is scrolling up or down - load the cells in the future to make it
-   * so the user doesn't see any flashing
-   */
-  updateCellsPremptively: function updateCellsPremptively(props, cellData, visibleRows) {
-    if (!props.premptiveLoading) {
-      return; // No need to run is preemptive loading is 0 or false
-    }
-
-    if (!cellData.premptiveLoadedCells) {
-      cellData.premptiveLoadedCells = [];
-    };
-
-    // Get the first and last visible rows
-    var firstVisibleRow, lastVisibleRow, firstVisibleSection, lastVisibleSection;
-    for (var section in visibleRows) {
-      for (var row in visibleRows[section]) {
-        if (firstVisibleRow === undefined) {
-          firstVisibleSection = section;
-          firstVisibleRow = Number(row);
-        } else {
-          lastVisibleSection = section;
-          lastVisibleRow = Number(row);
-        }
-
-        /*
-         * Dont consider a cell preemptiveloaded if it is touched by default visibility logic.
-         */
-        var currentCell = cellData[section][row];
-        if (cellData.premptiveLoadedCells) {
-          var i = cellData.premptiveLoadedCells.indexOf(currentCell);
-          if (i >= 0) {
-            cellData.premptiveLoadedCells.splice(i, 1);
-          }
-        };
-      };
-    };
-
-    // Figure out if we're scrolling up or down
-    var isScrollingUp = cellData.firstVisibleRow > firstVisibleRow;
-    var isScrollingDown = cellData.lastVisibleRow < lastVisibleRow;
-
-    var scrollDirectionChanged;
-    if (isScrollingUp && cellData.lastScrollDirection === 'down') {
-      scrollDirectionChanged = true;
-    } else if (isScrollingDown && cellData.lastScrollDirection === 'up') {
-      scrollDirectionChanged = true;
-    }
-
-    // remove the other side's preemptive cells
-    if (scrollDirectionChanged) {
-      var cell;
-      while (cell = cellData.premptiveLoadedCells.pop()) {
-        cell.setVisibility(false);
-      }
-    };
-
-    // Preemptively set cells
-    for (var i = 1; i <= props.premptiveLoading; i++) {
-      var cell;
-
-      if (isScrollingUp) {
-        cell = cellData[firstVisibleSection][firstVisibleRow - i];
-      } else if (isScrollingDown) {
-        cell = cellData[lastVisibleSection][lastVisibleRow + i];
-      }
-
-      if (cell) {
-        cell.setVisibility(true);
-        cellData.premptiveLoadedCells.push(cell);
-      } else {
-        break;
-      }
-    }
-
-    cellData.firstVisibleRow = firstVisibleRow; // cache the first seen row
-    cellData.lastVisibleRow = lastVisibleRow; // cache the last seen row
-
-    if (isScrollingUp) {
-      cellData.lastScrollDirection = 'up';
-    } else if (isScrollingDown) {
-      cellData.lastScrollDirection = 'down';
-    }
-  }
-};
 
 module.exports = SGListView;
 //# sourceMappingURL=SGListView.js.map

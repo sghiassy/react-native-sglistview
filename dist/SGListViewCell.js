@@ -41,23 +41,6 @@ var SGListViewCell = _react2.default.createClass({
       height: 0 };
   },
   // the view defaults to height of size 0
-
-
-  /**
-   * Render Methods
-   */
-
-  render: function render() {
-    if (this.state.visibility === false) {
-      return _react2.default.createElement(_reactNative.View, { style: { width: this.viewProperties.width, height: this.viewProperties.height } });
-    }
-    return _react2.default.createElement(
-      _reactNative.View,
-      { onLayout: this.onLayout },
-      this.props.usersView
-    );
-  },
-
   onLayout: function onLayout(evt) {
     // When the cell has actually been layed out, record the rendered width & height
     this.viewProperties.width = evt.nativeEvent.layout.width;
@@ -78,6 +61,17 @@ var SGListViewCell = _react2.default.createClass({
     } else {
       this.setState({ visibility: false });
     }
+  },
+  render: function render() {
+    if (this.state.visibility === false) {
+      return _react2.default.createElement(_reactNative.View, { style: { width: this.viewProperties.width, height: this.viewProperties.height } });
+    }
+
+    return _react2.default.createElement(
+      _reactNative.View,
+      { onLayout: this.onLayout },
+      this.props.usersView
+    );
   }
 });
 
