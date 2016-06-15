@@ -1,4 +1,8 @@
-language: node
+language: node_js
+node_js:
+  - "6"
+  - "6.1"
+  - "5.11"
 build:
   run:
     - npm test
