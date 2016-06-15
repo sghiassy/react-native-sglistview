@@ -1,7 +1,8 @@
 const should = require('should');
+const SGListView = require('../dist');
 
-describe('Base', () => {
-  it('should work', () => {
-    (1).should.equal(1);
+describe('SGListView', () => {
+  it('should exist', () => {
+    SGListView.should.be.ok;
   });
 });

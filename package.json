@@ -4,9 +4,8 @@
   "description": "A React Native module to provide a memory efficent ListView over the native implementation",
   "main": "lib/index.js",
   "scripts": {
-    "pretest": "eslint lib test",
-    "compile": "./node_modules/.bin/babel --source-maps=true --out-dir=dist lib",
-    "prepublish": "npm run compile",
+    "build": "./node_modules/.bin/babel --source-maps=true --out-dir=dist lib",
+    "pretest": "eslint lib test && npm run build",
     "test": "./node_modules/.bin/mocha",
     "x": "open example/ios/example.xcodeproj"
   },
@@ -38,6 +37,7 @@
     "eslint-plugin-jsx-a11y": "^1.4.2",
     "eslint-plugin-react": "^5.1.1",
     "mocha": "^2.5.3",
+    "react-native-mock": "^0.2.3",
     "should": "^9.0.2"
   },
   "files": [
