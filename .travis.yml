@@ -6,3 +6,7 @@ node_js:
 build:
   run:
     - npm test
+install:
+  - npm install react
+  - npm install react-native
+  - npm install
