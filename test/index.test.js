@@ -1,7 +1,7 @@
 const should = require('should');
 const { shallow } = require('enzyme');
 const SGListView = require('../dist');
-const React = require('React');
+const React = require('react');
 
 describe('SGListView', () => {
 
