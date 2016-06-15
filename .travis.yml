@@ -1,8 +1,4 @@
-environment:
-  language: node
-  language_versions:
-    - v0.10.41p1
-    - v4.2.3
+language: node
 build:
   run:
     - npm test
