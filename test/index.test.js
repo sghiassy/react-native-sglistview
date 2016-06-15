@@ -17,6 +17,12 @@ describe('SGListView', () => {
     SGListView.should.be.ok;
     sgListView.should.be.ok;
     console.log(sgListView);
+    sgListView.unrendered.type.displayName.should.equal('SGListView');
+    sgListView.nodes[0].ref.should.equal('nativeListView');
+  });
+
+  it('should have default props', () => {
+    sgListView.node.props.premptiveLoading.should.equal(2);
   });
 
 });
