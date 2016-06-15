@@ -4,7 +4,3 @@ node_js:
 build:
   run:
     - npm test
-install:
-  - npm install -g babel-cli
-  - npm install -g mocha
-  - npm install
