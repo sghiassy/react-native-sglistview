@@ -6,7 +6,7 @@
   "scripts": {
     "build": "babel --source-maps=true --out-dir=dist lib",
     "pretest": "eslint lib test && npm run build",
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "mocha",
     "x": "open example/ios/example.xcodeproj"
   },
   "keywords": [
@@ -33,7 +33,8 @@
     "eslint-config-airbnb": "^9.0.1",
     "eslint-plugin-import": "^1.8.1",
     "eslint-plugin-jsx-a11y": "^1.4.2",
-    "eslint-plugin-react": "^5.1.1"
+    "eslint-plugin-react": "^5.1.1",
+    "should": "^9.0.2"
   },
   "files": [
     "*.js",
