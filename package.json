@@ -2,9 +2,11 @@
   "name": "react-native-sglistview",
   "version": "0.2.0",
   "description": "A React Native module to provide a memory efficent ListView over the native implementation",
-  "main": "index.js",
+  "main": "lib/index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "babel --source-maps=true --out-dir=dist lib",
+    "pretest": "eslint lib test && npm run build",
+    "test": "mocha",
     "x": "open example/ios/example.xcodeproj"
   },
   "keywords": [
@@ -12,14 +14,30 @@
     "ListView"
   ],
   "author": {
-    "name" : "Shaheen Ghiassy",
-    "email" : "shaheen.ghiassy@gmail.com",
-    "url" : "http://shaheenghiassy.com"
+    "name": "Shaheen Ghiassy",
+    "email": "shaheen.ghiassy@gmail.com",
+    "url": "http://shaheenghiassy.com"
   },
   "license": "MIT",
   "homepage": "https://github.com/sghiassy/react-native-sglistview",
   "peerDependencies": {
     "react-native": ">=0.25.0",
     "react": ">=0.14.0 || ^15.0.0"
-  }
+  },
+  "devDependencies": {
+    "babel-preset-es2015": "^6.9.0",
+    "babel-preset-react": "^6.5.0",
+    "babel-preset-stage-2": "^6.5.0",
+    "enzyme": "^2.3.0",
+    "eslint": "^2.12.0",
+    "eslint-config-airbnb": "^9.0.1",
+    "eslint-plugin-import": "^1.8.1",
+    "eslint-plugin-jsx-a11y": "^1.4.2",
+    "eslint-plugin-react": "^5.1.1",
+    "should": "^9.0.2"
+  },
+  "files": [
+    "*.js",
+    "lib"
+  ]
 }
