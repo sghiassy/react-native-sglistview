@@ -15,14 +15,23 @@ describe('SGListView', () => {
 
   it('should exist', () => {
     SGListView.should.be.ok;
-    sgListView.should.be.ok;
-    console.log(sgListView);
-    sgListView.unrendered.type.displayName.should.equal('SGListView');
-    sgListView.nodes[0].ref.should.equal('nativeListView');
   });
 
   it('should have default props', () => {
     sgListView.node.props.premptiveLoading.should.equal(2);
+  });
+
+  it('should render', () => {
+    sgListView.should.be.ok;
+    sgListView.unrendered.type.displayName.should.equal('SGListView');
+  });
+
+  it('should contain a native ListView', () => {
+    sgListView.nodes[0].type.displayName.should.equal('ListView');
+  });
+
+  it('should contain a ref to a native ListView component', () => {
+    sgListView.nodes[0].ref.should.equal('nativeListView');
   });
 
 });
