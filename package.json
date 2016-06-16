@@ -5,9 +5,10 @@
   "main": "lib/index.js",
   "scripts": {
     "build": "./node_modules/.bin/babel --source-maps=true --out-dir=dist lib",
-    "pretest": "eslint lib test && npm run build",
+    "posttest": "mv .babelrc babelrc",
+    "pretest": "mv babelrc .babelrc && eslint lib test && npm run build",
     "test": "./node_modules/.bin/mocha",
-    "x": "open example/ios/example.xcodeproj"
+    "x": "open example/ios/AwesomeProject.xcodeproj"
   },
   "keywords": [
     "ReactNative",
