@@ -1,0 +1,8 @@
+language: node_js
+node_js:
+  - "5"
+  - "5.10"
+  - "6"
+build:
+  run:
+    - npm test

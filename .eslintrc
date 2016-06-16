@@ -1,0 +1,17 @@
+{
+  "extends": "airbnb",
+  "parserOptions":{
+    "ecmaFeatures": {
+      "experimentalObjectRestSpread": true
+    }
+  },
+  "rules": {
+    "eqeqeq": 0,
+    "import/no-unresolved": 0,
+    "max-len": 0,
+    "no-param-reassign": ["error", { "props": false }],
+    "react/jsx-closing-bracket-location": [1, "after-props"],
+    "react/prefer-es6-class": 0,
+    "space-before-function-paren":["error", "never"]
+  }
+}

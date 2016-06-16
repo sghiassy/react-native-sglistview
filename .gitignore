@@ -25,7 +25,6 @@ Groupon.xcworkspace/xcshareddata/Groupon.xccheckout
 *.swp
 
 # Other
-build*
 data_archive*
 *.kpf
 *.wpr
