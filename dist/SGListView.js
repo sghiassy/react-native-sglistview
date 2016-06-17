@@ -35,27 +35,25 @@ var PrivateMethods = {
    * Go through the changed rows and update the cell with their new visibility state
    */
   updateCellsVisibility: function updateCellsVisibility(cellData, changedRows) {
-    changedRows.forEvery(function (section) {
+    for (var section in changedRows) {
       if (changedRows.hasOwnProperty(section)) {
-        (function () {
-          // Good JS hygiene check
-          var currentSection = changedRows[section];
+        // Good JS hygiene check
+        var currentSection = changedRows[section];
 
-          currentSection.forEvery(function (row) {
-            if (currentSection.hasOwnProperty(row)) {
-              // Good JS hygiene check
-              var currentCell = cellData[section][row];
-              var currentCellVisibility = currentSection[row];
+        for (var row in currentSection) {
+          if (currentSection.hasOwnProperty(row)) {
+            // Good JS hygiene check
+            var currentCell = cellData[section][row];
+            var currentCellVisibility = currentSection[row];
 
-              // Set the cell's new visibility state
-              if (currentCell && currentCell.setVisibility) {
-                currentCell.setVisibility(currentCellVisibility);
-              }
+            // Set the cell's new visibility state
+            if (currentCell && currentCell.setVisibility) {
+              currentCell.setVisibility(currentCellVisibility);
             }
-          });
-        })();
+          }
+        }
       }
-    });
+    }
   },
 
 
@@ -78,28 +76,31 @@ var PrivateMethods = {
     var firstVisibleSection = void 0;
     var lastVisibleSection = void 0;
 
-    visibleRows.forEach(function (section) {
-      visibleRows[section].forEach(function (row) {
-        if (firstVisibleRow === undefined) {
-          firstVisibleSection = section;
-          firstVisibleRow = Number(row);
-        } else {
-          lastVisibleSection = section;
-          lastVisibleRow = Number(row);
-        }
+    for (var section in visibleRows) {
+      if (visibleRows.hasOwnProperty(section)) {
+        // Good JS hygiene check
+        for (var row in visibleRows[section]) {
+          if (firstVisibleRow === undefined) {
+            firstVisibleSection = section;
+            firstVisibleRow = Number(row);
+          } else {
+            lastVisibleSection = section;
+            lastVisibleRow = Number(row);
+          }
 
-        /*
-         * Dont consider a cell preemptiveloaded if it is touched by default visibility logic.
-         */
-        var currentCell = cellData[section][row];
-        if (cellData.premptiveLoadedCells) {
-          var i = cellData.premptiveLoadedCells.indexOf(currentCell);
-          if (i >= 0) {
-            cellData.premptiveLoadedCells.splice(i, 1);
+          /*
+           * Dont consider a cell preemptiveloaded if it is touched by default visibility logic.
+           */
+          var currentCell = cellData[section][row];
+          if (cellData.premptiveLoadedCells) {
+            var i = cellData.premptiveLoadedCells.indexOf(currentCell);
+            if (i >= 0) {
+              cellData.premptiveLoadedCells.splice(i, 1);
+            }
           }
         }
-      });
-    });
+      }
+    }
 
     // Figure out if we're scrolling up or down
     var isScrollingUp = cellData.firstVisibleRow > firstVisibleRow;
@@ -123,13 +124,13 @@ var PrivateMethods = {
     }
 
     // Preemptively set cells
-    for (var i = 1; i <= props.premptiveLoading; i++) {
+    for (var _i = 1; _i <= props.premptiveLoading; _i++) {
       var _cell = void 0;
 
       if (isScrollingUp) {
-        _cell = cellData[firstVisibleSection][firstVisibleRow - i];
+        _cell = cellData[firstVisibleSection][firstVisibleRow - _i];
       } else if (isScrollingDown) {
-        _cell = cellData[lastVisibleSection][lastVisibleRow + i];
+        _cell = cellData[lastVisibleSection][lastVisibleRow + _i];
       }
 
       if (_cell) {

@@ -1,3 +1,5 @@
+![](https://travis-ci.org/sghiassy/react-native-sglistview.svg?branch=master)
+
 # React Native SGListView
 
 SGListView is a memory minded implementation of the React Native's ListView.
