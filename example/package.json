@@ -9,7 +9,7 @@
   "dependencies": {
     "react": "^15.1.0",
     "react-native": "^0.27.2",
-    "react-native-sglistview": "^0.3.0",
+    "react-native-sglistview": "^0.3.1",
     "superagent": "^2.0.0"
   }
 }
