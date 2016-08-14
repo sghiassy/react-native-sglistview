@@ -34,7 +34,7 @@ SGListView was designed to be a developer-friendly drop-in replacement for ListV
 Import SGListView
 
 ```js
-var SGListView = require('react-native-sglistview');
+import SGListView from 'react-native-sglistview';
 ```
 
 Change references from `ListView` to `SGListView`.
@@ -49,8 +49,35 @@ To:
 ```
 
 Done.
-
 **NOTE**: You still create the datasource using ListView (i.e.: `var dataSource = new ListView.DataSource(...)`)
+
+#### Reference Configuration
+You must clear each argument's meaning, suggent to read these two RN official documents: [ListView component](http://facebook.github.io/react-native/releases/0.31/docs/listview.html)  [ListView performance optimize](http://facebook.github.io/react-native/releases/0.31/docs/performance.html#listview-initial-rendering-is-too-slow-or-scroll-performance-is-bad-for-large-lists)
+
+SGListView Component
+```jsx
+ <SGListView
+                dataSource={this.getDataSource() } //data source
+                ref={'listview'}
+                initialListSize={1}
+                stickyHeaderIndices={[]}
+                onEndReachedThreshold={1}
+                scrollRenderAheadDistance={1}
+                pageSize={1}
+                renderRow={(item) =>
+                    <ListItem>
+                        <Text>{item}</Text>
+                    </ListItem>
+                }
+                />
+```
+Data Source
+```js
+    getDataSource() {
+        const ds = new ListView.DataSource({ rowHasChanged: (r1, r2) => r1.id !== r2.id });
+        return ds.cloneWithRows(this.props.dataSource);
+    }
+```
 
 ## Methods
 
