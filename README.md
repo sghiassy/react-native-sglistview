@@ -4,6 +4,10 @@
 
 SGListView is a memory minded implementation of the React Native's ListView.
 
+## Maintainers Wanted
+
+I'm currently looking for maintainers to help maintain and improve this package for the React-Native community. For more information please see [GitHub Issue #48](https://github.com/sghiassy/react-native-sglistview/issues/48).
+
 ## The Problem
 
 The React Native team has done a tremendous job building a robust platform. One oversight, is the memory performance of their ListView implementation. When scrolling down long lists, the memory footprint increases linearly and will eventually exhaust all available memory. On a device as memory-constrained as a mobile device, this behavior can be a deal breaker for many.
@@ -21,9 +25,13 @@ An example of SGListView performance for long lists.
 
 ## Installation
 
-Install via npm
+Install via yarn of npm
 
 ```bash
+#yarn
+yarn add react-native-sglistview
+
+#npm
 npm install react-native-sglistview --save
 ```
 
@@ -31,12 +39,13 @@ npm install react-native-sglistview --save
 
 SGListView was designed to be a developer-friendly drop-in replacement for ListView. Simply import the package and change the `ListView` references in the render methods to `SGListView`. Nothing else. No fuss, no muss.
 
+### Import
 Import SGListView
 
 ```js
 import SGListView from 'react-native-sglistview';
 ```
-
+### Rename
 Change references from `ListView` to `SGListView`.
 
 From:
@@ -48,40 +57,76 @@ To:
 <SGListView ... />
 ```
 
-Done.
-**NOTE**: You still create the datasource using ListView (i.e.: `var dataSource = new ListView.DataSource(...)`)
+### Done
+That's it. If you had a working list view and did the above two steps everything should work. If you're instead creating a ListView from scratch, then you'll need to do all the regular setup that the default ListView requires (i.e: Create and link up your datasource `const dataSource = new ListView.DataSource(...)`).
+
+## Simple Example
+
+```js
+import React from 'react';
+import { ListView } from 'react-native';
+import SGListView from 'react-native-sglistview';
+
+const LIST_VIEW = 'listview';
+
+class CardListView extends React.Component {
+  static renderRow(rowData, sectionID, rowID) {
+    return (
+      <View>
+        <Text>{rowData.title}</Text>
+      </View>
+    );
+  }
+
+  render() {
+    return (
+      <SGListView
+        ref={LIST_VIEW}
+        dataSource={this.getDataSource()}
+        renderRow={this.renderRow}
+      />
+    );
+  }
+
+  getDataSource() {
+    const dataSource = new ListView.DataSource(
+      { rowHasChanged: (r1, r2) => r1.uuid !== r2.uuid });
+
+    const deals = this.props.deals.length > 0;
+    return deals ? dataSource.cloneWithRows(this.props.deals) : dataSource;
+  }
+}
+
+```
 
 #### Reference Configuration
-You must clear each argument's meaning, suggent to read these two RN official documents: [ListView component](http://facebook.github.io/react-native/releases/0.31/docs/listview.html)  [ListView performance optimize](http://facebook.github.io/react-native/releases/0.31/docs/performance.html#listview-initial-rendering-is-too-slow-or-scroll-performance-is-bad-for-large-lists)
+SGListView passes its props to React-Native's ListView. If ListView requires a prop, then you must supply that prop to SGListView so it can pass it down. For more information read these two RN official documents: [ListView component](http://facebook.github.io/react-native/releases/0.31/docs/listview.html)  [ListView performance optimize](http://facebook.github.io/react-native/releases/0.31/docs/performance.html#listview-initial-rendering-is-too-slow-or-scroll-performance-is-bad-for-large-lists)
 
 SGListView Component
 ```jsx
- <SGListView
-                dataSource={this.getDataSource() } //data source
-                ref={'listview'}
-                initialListSize={1}
-                stickyHeaderIndices={[]}
-                onEndReachedThreshold={1}
-                scrollRenderAheadDistance={1}
-                pageSize={1}
-                renderRow={(item) =>
-                    <ListItem>
-                        <Text>{item}</Text>
-                    </ListItem>
-                }
-                />
-```
-Data Source
-```js
-    getDataSource() {
-        const ds = new ListView.DataSource({ rowHasChanged: (r1, r2) => r1.id !== r2.id });
-        return ds.cloneWithRows(this.props.dataSource);
+  <SGListView
+    dataSource={this.getDataSource() } //data source
+    ref={'listview'}
+    initialListSize={1}
+    stickyHeaderIndices={[]}
+    onEndReachedThreshold={1}
+    scrollRenderAheadDistance={1}
+    pageSize={1}
+    renderRow={(item) =>
+      <ListItem>
+        <Text>{item}</Text>
+      </ListItem>
     }
+  />
 ```
 
-## Methods
+## Configuration
 
-  * **getNativeListView**: Get the underlying `ListView` element from `SGListView`.
+SGListView provides a couple methods and options in addition to React-Native's ListView component. They are detailed here:
+
+### Methods
+
+  * **getNativeListView**: Sometime you want to be able to interact with SGListView's underlying ListView instance. You can get a reference to the underlying `ListView` element from `SGListView` by calling this method.
 
 ## Options
 
@@ -113,61 +158,4 @@ Shaheen Ghiassy <shaheen.ghiassy@gmail.com>
 
 ## Contributing
 
-Every attempt will be made to review PRs promptly. In addition please follow the below style guide
-
-### Contributing Style Guide
-
-#### Annotate Logic Tests
-
-Use variables / BOOLean values to better annotate logic tests. This makes code more readable and maintainable.
-
-Instead of
-
-```js
-if (evt.x >= box.x1 && evt.x <= box.x2) {
-```
-
-do
-
-```js
-var userClickedInsideBox = evt.x >= box.x1 && evt.x <= box.x2;
-
-if (userClickedInsideBox) {
-```
-
-#### Semicolons?
-
-Yes, semicolons are required. The lack of semicolons in JS lead to obsure ASI bugs [link](http://stackoverflow.com/questions/444080/do-you-recommend-using-semicolons-after-every-statement-in-javascript) and [Douglas Crockford says to use them](http://javascript.crockford.com/code.html).
-
-#### Brackets are required
-
-Yup
-
-#### Brackets on the same line
-
-Do
-
-```js
-if (test === true) {
-```
-
-Not
-
-```js
-if (test === true)
-{
-```
-
-#### If spacing
-
-Do
-
-```js
-if (test === true) {
-```
-
-Not
-
-```js
-if( test===true ){
-```
+My attempt will be made to review PRs promptly - but truthfully I'm pretty bad at it.
