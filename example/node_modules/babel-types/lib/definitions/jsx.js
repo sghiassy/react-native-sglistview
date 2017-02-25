@@ -43,7 +43,7 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
       validate: (0, _index.assertNodeType)("JSXClosingElement")
     },
     children: {
-      validate: (0, _index.chain)((0, _index.assertValueType)("array"), (0, _index.assertEach)((0, _index.assertNodeType)("JSXText", "JSXExpressionContainer", "JSXElement")))
+      validate: (0, _index.chain)((0, _index.assertValueType)("array"), (0, _index.assertEach)((0, _index.assertNodeType)("JSXText", "JSXExpressionContainer", "JSXSpreadChild", "JSXElement")))
     }
   }
 });
@@ -53,6 +53,16 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { de
 });
 
 (0, _index2.default)("JSXExpressionContainer", {
+  visitor: ["expression"],
+  aliases: ["JSX", "Immutable"],
+  fields: {
+    expression: {
+      validate: (0, _index.assertNodeType)("Expression")
+    }
+  }
+});
+
+(0, _index2.default)("JSXSpreadChild", {
   visitor: ["expression"],
   aliases: ["JSX", "Immutable"],
   fields: {

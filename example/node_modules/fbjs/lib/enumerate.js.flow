@@ -225,12 +225,12 @@ function enumerate(object, kind) {
 
     // Then see if an object implements own.
   } else if (object[Symbol.iterator]) {
-      return object[Symbol.iterator]();
+    return object[Symbol.iterator]();
 
-      // And fallback to generic with entries.
-    } else {
-        return GenericIterators[kind || KIND_ENTRIES](object);
-      }
+    // And fallback to generic with entries.
+  } else {
+    return GenericIterators[kind || KIND_ENTRIES](object);
+  }
 }
 
 Object.assign(enumerate, {

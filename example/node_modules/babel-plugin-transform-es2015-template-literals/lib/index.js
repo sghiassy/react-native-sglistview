@@ -1,4 +1,4 @@
-/*istanbul ignore next*/"use strict";
+"use strict";
 
 exports.__esModule = true;
 
@@ -6,8 +6,8 @@ var _getIterator2 = require("babel-runtime/core-js/get-iterator");
 
 var _getIterator3 = _interopRequireDefault(_getIterator2);
 
-exports.default = function ( /*istanbul ignore next*/_ref) {
-  /*istanbul ignore next*/var t = _ref.types;
+exports.default = function (_ref) {
+  var t = _ref.types;
 
   function isString(node) {
     return t.isLiteral(node) && typeof node.value === "string";
@@ -18,9 +18,9 @@ exports.default = function ( /*istanbul ignore next*/_ref) {
   }
 
   return {
-    visitor: { /*istanbul ignore next*/
+    visitor: {
       TaggedTemplateExpression: function TaggedTemplateExpression(path, state) {
-        /*istanbul ignore next*/var node = path.node;
+        var node = path.node;
 
         var quasi = node.quasi;
         var args = [];
@@ -28,8 +28,7 @@ exports.default = function ( /*istanbul ignore next*/_ref) {
         var strings = [];
         var raw = [];
 
-        for ( /*istanbul ignore next*/var _iterator = quasi.quasis, _isArray = Array.isArray(_iterator), _i = 0, _iterator = _isArray ? _iterator : (0, _getIterator3.default)(_iterator);;) {
-          /*istanbul ignore next*/
+        for (var _iterator = quasi.quasis, _isArray = Array.isArray(_iterator), _i = 0, _iterator = _isArray ? _iterator : (0, _getIterator3.default)(_iterator);;) {
           var _ref2;
 
           if (_isArray) {
@@ -60,13 +59,12 @@ exports.default = function ( /*istanbul ignore next*/_ref) {
 
         path.replaceWith(t.callExpression(node.tag, args));
       },
-      /*istanbul ignore next*/TemplateLiteral: function TemplateLiteral(path, state) {
+      TemplateLiteral: function TemplateLiteral(path, state) {
         var nodes = [];
 
         var expressions = path.get("expressions");
 
-        for ( /*istanbul ignore next*/var _iterator2 = path.node.quasis, _isArray2 = Array.isArray(_iterator2), _i2 = 0, _iterator2 = _isArray2 ? _iterator2 : (0, _getIterator3.default)(_iterator2);;) {
-          /*istanbul ignore next*/
+        for (var _iterator2 = path.node.quasis, _isArray2 = Array.isArray(_iterator2), _i2 = 0, _iterator2 = _isArray2 ? _iterator2 : (0, _getIterator3.default)(_iterator2);;) {
           var _ref3;
 
           if (_isArray2) {
@@ -92,13 +90,10 @@ exports.default = function ( /*istanbul ignore next*/_ref) {
           }
         }
 
-        // filter out empty string literals
-        nodes = nodes.filter(function (n) /*istanbul ignore next*/{
+        nodes = nodes.filter(function (n) {
           return !t.isLiteral(n, { value: "" });
         });
 
-        // since `+` is left-to-right associative
-        // ensure the first node is a string if first/second isn't
         if (!isString(nodes[0]) && !isString(nodes[1])) {
           nodes.unshift(t.stringLiteral(""));
         }
@@ -106,8 +101,7 @@ exports.default = function ( /*istanbul ignore next*/_ref) {
         if (nodes.length > 1) {
           var root = buildBinaryExpression(nodes.shift(), nodes.shift());
 
-          for ( /*istanbul ignore next*/var _iterator3 = nodes, _isArray3 = Array.isArray(_iterator3), _i3 = 0, _iterator3 = _isArray3 ? _iterator3 : (0, _getIterator3.default)(_iterator3);;) {
-            /*istanbul ignore next*/
+          for (var _iterator3 = nodes, _isArray3 = Array.isArray(_iterator3), _i3 = 0, _iterator3 = _isArray3 ? _iterator3 : (0, _getIterator3.default)(_iterator3);;) {
             var _ref4;
 
             if (_isArray3) {
@@ -133,7 +127,6 @@ exports.default = function ( /*istanbul ignore next*/_ref) {
   };
 };
 
-/*istanbul ignore next*/
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 module.exports = exports["default"];

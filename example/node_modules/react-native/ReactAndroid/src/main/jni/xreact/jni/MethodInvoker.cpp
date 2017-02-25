@@ -2,14 +2,16 @@
 
 #include "MethodInvoker.h"
 
-#include <react/jni/ReadableNativeArray.h>
 #ifdef WITH_FBSYSTRACE
 #include <fbsystrace.h>
 #endif
 
-#include "ModuleRegistryHolder.h"
+#include <cxxreact/CxxNativeModule.h>
+
 #include "JCallback.h"
 #include "JExecutorToken.h"
+#include "ReadableNativeArray.h"
+#include "ReadableNativeMap.h"
 
 namespace facebook {
 namespace react {
@@ -137,14 +139,13 @@ jvalue extract(std::weak_ptr<Instance>& instance, ExecutorToken token, char type
       value.l = valueOf(extractDouble(arg));
       break;
     case 'S':
-      value.l = jni::make_jstring(arg.getString()).release();
+      value.l = jni::make_jstring(arg.getString().c_str()).release();
       break;
     case 'A':
       value.l = ReadableNativeArray::newObjectCxxArgs(arg).release();
       break;
     case 'M':
-      // HACK: Workaround for constructing ReadableNativeMap
-      value.l = ExposedReadableNativeArray(folly::dynamic::array(arg)).getMap(0);
+      value.l = ReadableNativeMap::newObjectCxxArgs(arg).release();
       break;
     case 'X':
       value.l = extractCallback(instance, token, arg).release();

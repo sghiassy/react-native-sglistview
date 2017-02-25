@@ -1,6 +1,5 @@
 import {types as tt} from "./tokentype"
 import {Parser} from "./state"
-import {reservedWords} from "./identifier"
 import {has} from "./util"
 
 const pp = Parser.prototype
@@ -11,10 +10,13 @@ const pp = Parser.prototype
 pp.toAssignable = function(node, isBinding) {
   if (this.options.ecmaVersion >= 6 && node) {
     switch (node.type) {
-    case "Identifier":
+      case "Identifier":
+      if (this.inAsync && node.name === "await")
+        this.raise(node.start, "Can not use 'await' as identifier inside an async function")
+      break
+
     case "ObjectPattern":
     case "ArrayPattern":
-    case "AssignmentPattern":
       break
 
     case "ObjectExpression":
@@ -34,9 +36,15 @@ pp.toAssignable = function(node, isBinding) {
     case "AssignmentExpression":
       if (node.operator === "=") {
         node.type = "AssignmentPattern"
+        delete node.operator
+        this.toAssignable(node.left, isBinding)
+        // falls through to AssignmentPattern
       } else {
         this.raise(node.left.end, "Only '=' operator can be used for specifying default value.")
+        break
       }
+
+    case "AssignmentPattern":
       break
 
     case "ParenthesizedExpression":
@@ -69,6 +77,9 @@ pp.toAssignableList = function(exprList, isBinding) {
         this.unexpected(arg.start)
       --end
     }
+
+    if (isBinding && last && last.type === "RestElement" && last.argument.type !== "Identifier")
+      this.unexpected(last.argument.start)
   }
   for (let i = 0; i < end; i++) {
     let elt = exprList[i]
@@ -79,17 +90,21 @@ pp.toAssignableList = function(exprList, isBinding) {
 
 // Parses spread element.
 
-pp.parseSpread = function(refShorthandDefaultPos) {
+pp.parseSpread = function(refDestructuringErrors) {
   let node = this.startNode()
   this.next()
-  node.argument = this.parseMaybeAssign(refShorthandDefaultPos)
+  node.argument = this.parseMaybeAssign(false, refDestructuringErrors)
   return this.finishNode(node, "SpreadElement")
 }
 
-pp.parseRest = function() {
+pp.parseRest = function(allowNonIdent) {
   let node = this.startNode()
   this.next()
-  node.argument = this.type === tt.name || this.type === tt.bracketL ? this.parseBindingAtom() : this.unexpected()
+
+  // RestElement inside of a function parameter must be an identifier
+  if (allowNonIdent) node.argument = this.type === tt.name ? this.parseIdent() : this.unexpected()
+  else node.argument = this.type === tt.name || this.type === tt.bracketL ? this.parseBindingAtom() : this.unexpected()
+
   return this.finishNode(node, "RestElement")
 }
 
@@ -115,7 +130,7 @@ pp.parseBindingAtom = function() {
   }
 }
 
-pp.parseBindingList = function(close, allowEmpty, allowTrailingComma) {
+pp.parseBindingList = function(close, allowEmpty, allowTrailingComma, allowNonIdent) {
   let elts = [], first = true
   while (!this.eat(close)) {
     if (first) first = false
@@ -125,9 +140,10 @@ pp.parseBindingList = function(close, allowEmpty, allowTrailingComma) {
     } else if (allowTrailingComma && this.afterTrailingComma(close)) {
       break
     } else if (this.type === tt.ellipsis) {
-      let rest = this.parseRest()
+      let rest = this.parseRest(allowNonIdent)
       this.parseBindingListItem(rest)
       elts.push(rest)
+      if (this.type === tt.comma) this.raise(this.start, "Comma is not permitted after the rest element")
       this.expect(close)
       break
     } else {
@@ -146,19 +162,9 @@ pp.parseBindingListItem = function(param) {
 // Parses assignment pattern around given atom if possible.
 
 pp.parseMaybeDefault = function(startPos, startLoc, left) {
-  if (Array.isArray(startPos)){
-    if (this.options.locations && noCalls === undefined) {
-      // shift arguments to left by one
-      left = startLoc
-      // flatten startPos
-      startLoc = startPos[1]
-      startPos = startPos[0]
-    }
-  }
   left = left || this.parseBindingAtom()
-  if (!this.eat(tt.eq)) return left
+  if (this.options.ecmaVersion < 6 || !this.eat(tt.eq)) return left
   let node = this.startNodeAt(startPos, startLoc)
-  node.operator = "="
   node.left = left
   node.right = this.parseMaybeAssign()
   return this.finishNode(node, "AssignmentPattern")
@@ -170,17 +176,17 @@ pp.parseMaybeDefault = function(startPos, startLoc, left) {
 pp.checkLVal = function(expr, isBinding, checkClashes) {
   switch (expr.type) {
   case "Identifier":
-    if (this.strict && (reservedWords.strictBind(expr.name) || reservedWords.strict(expr.name)))
-      this.raise(expr.start, (isBinding ? "Binding " : "Assigning to ") + expr.name + " in strict mode")
+    if (this.strict && this.reservedWordsStrictBind.test(expr.name))
+      this.raiseRecoverable(expr.start, (isBinding ? "Binding " : "Assigning to ") + expr.name + " in strict mode")
     if (checkClashes) {
       if (has(checkClashes, expr.name))
-        this.raise(expr.start, "Argument name clash in strict mode")
+        this.raiseRecoverable(expr.start, "Argument name clash")
       checkClashes[expr.name] = true
     }
     break
 
   case "MemberExpression":
-    if (isBinding) this.raise(expr.start, (isBinding ? "Binding" : "Assigning to") + " member expression")
+    if (isBinding) this.raiseRecoverable(expr.start, (isBinding ? "Binding" : "Assigning to") + " member expression")
     break
 
   case "ObjectPattern":

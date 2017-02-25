@@ -18,8 +18,7 @@
 
 import {types as tt} from "./tokentype"
 import {Parser} from "./state"
-import {reservedWords} from "./identifier"
-import {has} from "./util"
+import {DestructuringErrors} from "./parseutil"
 
 const pp = Parser.prototype
 
@@ -29,19 +28,28 @@ const pp = Parser.prototype
 // strict mode, init properties are also not allowed to be repeated.
 
 pp.checkPropClash = function(prop, propHash) {
-  if (this.options.ecmaVersion >= 6) return
-  let key = prop.key, name
+  if (this.options.ecmaVersion >= 6 && (prop.computed || prop.method || prop.shorthand))
+    return
+  let {key} = prop, name
   switch (key.type) {
   case "Identifier": name = key.name; break
   case "Literal": name = String(key.value); break
   default: return
   }
-  let kind = prop.kind || "init", other
-  if (has(propHash, name)) {
-    other = propHash[name]
+  let {kind} = prop
+  if (this.options.ecmaVersion >= 6) {
+    if (name === "__proto__" && kind === "init") {
+      if (propHash.proto) this.raiseRecoverable(key.start, "Redefinition of __proto__ property")
+      propHash.proto = true
+    }
+    return
+  }
+  name = "$" + name
+  let other = propHash[name]
+  if (other) {
     let isGetSet = kind !== "init"
     if ((this.strict || isGetSet) && other[kind] || !(isGetSet ^ other.init))
-      this.raise(key.start, "Redefinition of property")
+      this.raiseRecoverable(key.start, "Redefinition of property")
   } else {
     other = propHash[name] = {
       init: false,
@@ -67,13 +75,13 @@ pp.checkPropClash = function(prop, propHash) {
 // and object pattern might appear (so it's possible to raise
 // delayed syntax error at correct position).
 
-pp.parseExpression = function(noIn, refShorthandDefaultPos) {
+pp.parseExpression = function(noIn, refDestructuringErrors) {
   let startPos = this.start, startLoc = this.startLoc
-  let expr = this.parseMaybeAssign(noIn, refShorthandDefaultPos)
+  let expr = this.parseMaybeAssign(noIn, refDestructuringErrors)
   if (this.type === tt.comma) {
     let node = this.startNodeAt(startPos, startLoc)
     node.expressions = [expr]
-    while (this.eat(tt.comma)) node.expressions.push(this.parseMaybeAssign(noIn, refShorthandDefaultPos))
+    while (this.eat(tt.comma)) node.expressions.push(this.parseMaybeAssign(noIn, refDestructuringErrors))
     return this.finishNode(node, "SequenceExpression")
   }
   return expr
@@ -82,42 +90,47 @@ pp.parseExpression = function(noIn, refShorthandDefaultPos) {
 // Parse an assignment expression. This includes applications of
 // operators like `+=`.
 
-pp.parseMaybeAssign = function(noIn, refShorthandDefaultPos, afterLeftParse) {
-  if (this.type == tt._yield && this.inGenerator) return this.parseYield()
+pp.parseMaybeAssign = function(noIn, refDestructuringErrors, afterLeftParse) {
+  if (this.inGenerator && this.isContextual("yield")) return this.parseYield()
 
-  let failOnShorthandAssign
-  if (!refShorthandDefaultPos) {
-    refShorthandDefaultPos = {start: 0}
-    failOnShorthandAssign = true
+  let ownDestructuringErrors = false, oldParenAssign = -1
+  if (refDestructuringErrors) {
+    oldParenAssign = refDestructuringErrors.parenthesizedAssign
+    refDestructuringErrors.parenthesizedAssign = -1
   } else {
-    failOnShorthandAssign = false
+    refDestructuringErrors = new DestructuringErrors
+    ownDestructuringErrors = true
   }
+
   let startPos = this.start, startLoc = this.startLoc
   if (this.type == tt.parenL || this.type == tt.name)
     this.potentialArrowAt = this.start
-  let left = this.parseMaybeConditional(noIn, refShorthandDefaultPos)
+  let left = this.parseMaybeConditional(noIn, refDestructuringErrors)
   if (afterLeftParse) left = afterLeftParse.call(this, left, startPos, startLoc)
   if (this.type.isAssign) {
+    this.checkPatternErrors(refDestructuringErrors, true)
+    if (!ownDestructuringErrors) DestructuringErrors.call(refDestructuringErrors)
     let node = this.startNodeAt(startPos, startLoc)
     node.operator = this.value
     node.left = this.type === tt.eq ? this.toAssignable(left) : left
-    refShorthandDefaultPos.start = 0 // reset because shorthand default was used correctly
+    refDestructuringErrors.shorthandAssign = -1 // reset because shorthand default was used correctly
     this.checkLVal(left)
     this.next()
     node.right = this.parseMaybeAssign(noIn)
     return this.finishNode(node, "AssignmentExpression")
-  } else if (failOnShorthandAssign && refShorthandDefaultPos.start) {
-    this.unexpected(refShorthandDefaultPos.start)
+  } else {
+    if (ownDestructuringErrors) this.checkExpressionErrors(refDestructuringErrors, true)
   }
+  if (oldParenAssign > -1) refDestructuringErrors.parenthesizedAssign = oldParenAssign
   return left
 }
 
 // Parse a ternary conditional (`?:`) operator.
 
-pp.parseMaybeConditional = function(noIn, refShorthandDefaultPos) {
+pp.parseMaybeConditional = function(noIn, refDestructuringErrors) {
   let startPos = this.start, startLoc = this.startLoc
-  let expr = this.parseExprOps(noIn, refShorthandDefaultPos)
-  if (refShorthandDefaultPos && refShorthandDefaultPos.start) return expr
+  let expr = this.parseExprOps(noIn, refDestructuringErrors)
+  if (this.checkExpressionErrors(refDestructuringErrors)) return expr
   if (this.eat(tt.question)) {
     let node = this.startNodeAt(startPos, startLoc)
     node.test = expr
@@ -131,10 +144,10 @@ pp.parseMaybeConditional = function(noIn, refShorthandDefaultPos) {
 
 // Start the precedence parser.
 
-pp.parseExprOps = function(noIn, refShorthandDefaultPos) {
+pp.parseExprOps = function(noIn, refDestructuringErrors) {
   let startPos = this.start, startLoc = this.startLoc
-  let expr = this.parseMaybeUnary(refShorthandDefaultPos)
-  if (refShorthandDefaultPos && refShorthandDefaultPos.start) return expr
+  let expr = this.parseMaybeUnary(refDestructuringErrors, false)
+  if (this.checkExpressionErrors(refDestructuringErrors)) return expr
   return this.parseExprOp(expr, startPos, startLoc, -1, noIn)
 }
 
@@ -146,100 +159,112 @@ pp.parseExprOps = function(noIn, refShorthandDefaultPos) {
 
 pp.parseExprOp = function(left, leftStartPos, leftStartLoc, minPrec, noIn) {
   let prec = this.type.binop
-  if (Array.isArray(leftStartPos)){
-    if (this.options.locations && noIn === undefined) {
-      // shift arguments to left by one
-      noIn = minPrec
-      minPrec = leftStartLoc
-      // flatten leftStartPos
-      leftStartLoc = leftStartPos[1]
-      leftStartPos = leftStartPos[0]
-    }
-  }
   if (prec != null && (!noIn || this.type !== tt._in)) {
     if (prec > minPrec) {
-      let node = this.startNodeAt(leftStartPos, leftStartLoc)
-      node.left = left
-      node.operator = this.value
-      let op = this.type
+      let logical = this.type === tt.logicalOR || this.type === tt.logicalAND
+      let op = this.value
       this.next()
       let startPos = this.start, startLoc = this.startLoc
-      node.right = this.parseExprOp(this.parseMaybeUnary(), startPos, startLoc, prec, noIn)
-      this.finishNode(node, (op === tt.logicalOR || op === tt.logicalAND) ? "LogicalExpression" : "BinaryExpression")
+      let right = this.parseExprOp(this.parseMaybeUnary(null, false), startPos, startLoc, prec, noIn)
+      let node = this.buildBinary(leftStartPos, leftStartLoc, left, right, op, logical)
       return this.parseExprOp(node, leftStartPos, leftStartLoc, minPrec, noIn)
     }
   }
   return left
 }
 
+pp.buildBinary = function(startPos, startLoc, left, right, op, logical) {
+  let node = this.startNodeAt(startPos, startLoc)
+  node.left = left
+  node.operator = op
+  node.right = right
+  return this.finishNode(node, logical ? "LogicalExpression" : "BinaryExpression")
+}
+
 // Parse unary operators, both prefix and postfix.
 
-pp.parseMaybeUnary = function(refShorthandDefaultPos) {
-  if (this.type.prefix) {
+pp.parseMaybeUnary = function(refDestructuringErrors, sawUnary) {
+  let startPos = this.start, startLoc = this.startLoc, expr
+  if (this.inAsync && this.isContextual("await")) {
+    expr = this.parseAwait(refDestructuringErrors)
+    sawUnary = true
+  } else if (this.type.prefix) {
     let node = this.startNode(), update = this.type === tt.incDec
     node.operator = this.value
     node.prefix = true
     this.next()
-    node.argument = this.parseMaybeUnary()
-    if (refShorthandDefaultPos && refShorthandDefaultPos.start) this.unexpected(refShorthandDefaultPos.start)
+    node.argument = this.parseMaybeUnary(null, true)
+    this.checkExpressionErrors(refDestructuringErrors, true)
     if (update) this.checkLVal(node.argument)
     else if (this.strict && node.operator === "delete" &&
              node.argument.type === "Identifier")
-      this.raise(node.start, "Deleting local variable in strict mode")
-    return this.finishNode(node, update ? "UpdateExpression" : "UnaryExpression")
+      this.raiseRecoverable(node.start, "Deleting local variable in strict mode")
+    else sawUnary = true
+    expr = this.finishNode(node, update ? "UpdateExpression" : "UnaryExpression")
+  } else {
+    expr = this.parseExprSubscripts(refDestructuringErrors)
+    if (this.checkExpressionErrors(refDestructuringErrors)) return expr
+    while (this.type.postfix && !this.canInsertSemicolon()) {
+      let node = this.startNodeAt(startPos, startLoc)
+      node.operator = this.value
+      node.prefix = false
+      node.argument = expr
+      this.checkLVal(expr)
+      this.next()
+      expr = this.finishNode(node, "UpdateExpression")
+    }
   }
-  let startPos = this.start, startLoc = this.startLoc
-  let expr = this.parseExprSubscripts(refShorthandDefaultPos)
-  if (refShorthandDefaultPos && refShorthandDefaultPos.start) return expr
-  while (this.type.postfix && !this.canInsertSemicolon()) {
-    let node = this.startNodeAt(startPos, startLoc)
-    node.operator = this.value
-    node.prefix = false
-    node.argument = expr
-    this.checkLVal(expr)
-    this.next()
-    expr = this.finishNode(node, "UpdateExpression")
-  }
-  return expr
+
+  if (!sawUnary && this.eat(tt.starstar))
+    return this.buildBinary(startPos, startLoc, expr, this.parseMaybeUnary(null, false), "**", false)
+  else
+    return expr
 }
 
 // Parse call, dot, and `[]`-subscript expressions.
 
-pp.parseExprSubscripts = function(refShorthandDefaultPos) {
+pp.parseExprSubscripts = function(refDestructuringErrors) {
   let startPos = this.start, startLoc = this.startLoc
-  let expr = this.parseExprAtom(refShorthandDefaultPos)
-  if (refShorthandDefaultPos && refShorthandDefaultPos.start) return expr
-  return this.parseSubscripts(expr, startPos, startLoc)
+  let expr = this.parseExprAtom(refDestructuringErrors)
+  let skipArrowSubscripts = expr.type === "ArrowFunctionExpression" && this.input.slice(this.lastTokStart, this.lastTokEnd) !== ")"
+  if (this.checkExpressionErrors(refDestructuringErrors) || skipArrowSubscripts) return expr
+  let result = this.parseSubscripts(expr, startPos, startLoc)
+  if (refDestructuringErrors && result.type === "MemberExpression") {
+    if (refDestructuringErrors.parenthesizedAssign >= result.start) refDestructuringErrors.parenthesizedAssign = -1
+    if (refDestructuringErrors.parenthesizedBind >= result.start) refDestructuringErrors.parenthesizedBind = -1
+  }
+  return result
 }
 
 pp.parseSubscripts = function(base, startPos, startLoc, noCalls) {
-  if (Array.isArray(startPos)){
-    if (this.options.locations && noCalls === undefined) {
-      // shift arguments to left by one
-      noCalls = startLoc
-      // flatten startPos
-      startLoc = startPos[1]
-      startPos = startPos[0]
-    }
-  }
-  for (;;) {
-    if (this.eat(tt.dot)) {
+  let maybeAsyncArrow = this.options.ecmaVersion >= 8 && base.type === "Identifier" && base.name === "async" &&
+      this.lastTokEnd == base.end && !this.canInsertSemicolon()
+  for (let computed;;) {
+    if ((computed = this.eat(tt.bracketL)) || this.eat(tt.dot)) {
       let node = this.startNodeAt(startPos, startLoc)
       node.object = base
-      node.property = this.parseIdent(true)
-      node.computed = false
-      base = this.finishNode(node, "MemberExpression")
-    } else if (this.eat(tt.bracketL)) {
-      let node = this.startNodeAt(startPos, startLoc)
-      node.object = base
-      node.property = this.parseExpression()
-      node.computed = true
-      this.expect(tt.bracketR)
+      node.property = computed ? this.parseExpression() : this.parseIdent(true)
+      node.computed = !!computed
+      if (computed) this.expect(tt.bracketR)
       base = this.finishNode(node, "MemberExpression")
     } else if (!noCalls && this.eat(tt.parenL)) {
+      let refDestructuringErrors = new DestructuringErrors, oldYieldPos = this.yieldPos, oldAwaitPos = this.awaitPos
+      this.yieldPos = 0
+      this.awaitPos = 0
+      let exprList = this.parseExprList(tt.parenR, this.options.ecmaVersion >= 8, false, refDestructuringErrors)
+      if (maybeAsyncArrow && !this.canInsertSemicolon() && this.eat(tt.arrow)) {
+        this.checkPatternErrors(refDestructuringErrors, false)
+        this.checkYieldAwaitInDefaultParams()
+        this.yieldPos = oldYieldPos
+        this.awaitPos = oldAwaitPos
+        return this.parseArrowExpression(this.startNodeAt(startPos, startLoc), exprList, true)
+      }
+      this.checkExpressionErrors(refDestructuringErrors, true)
+      this.yieldPos = oldYieldPos || this.yieldPos
+      this.awaitPos = oldAwaitPos || this.awaitPos
       let node = this.startNodeAt(startPos, startLoc)
       node.callee = base
-      node.arguments = this.parseExprList(tt.parenR, false)
+      node.arguments = exprList
       base = this.finishNode(node, "CallExpression")
     } else if (this.type === tt.backQuote) {
       let node = this.startNodeAt(startPos, startLoc)
@@ -257,24 +282,34 @@ pp.parseSubscripts = function(base, startPos, startLoc, noCalls) {
 // `new`, or an expression wrapped in punctuation like `()`, `[]`,
 // or `{}`.
 
-pp.parseExprAtom = function(refShorthandDefaultPos) {
+pp.parseExprAtom = function(refDestructuringErrors) {
   let node, canBeArrow = this.potentialArrowAt == this.start
   switch (this.type) {
-  case tt._this:
   case tt._super:
+    if (!this.inFunction)
+      this.raise(this.start, "'super' outside of function or class")
+
+  case tt._this:
     let type = this.type === tt._this ? "ThisExpression" : "Super"
     node = this.startNode()
     this.next()
     return this.finishNode(node, type)
 
-  case tt._yield:
-    if (this.inGenerator) this.unexpected()
-
   case tt.name:
     let startPos = this.start, startLoc = this.startLoc
     let id = this.parseIdent(this.type !== tt.name)
-    if (canBeArrow && !this.canInsertSemicolon() && this.eat(tt.arrow))
-      return this.parseArrowExpression(this.startNodeAt(startPos, startLoc), [id])
+    if (this.options.ecmaVersion >= 8 && id.name === "async" && !this.canInsertSemicolon() && this.eat(tt._function))
+      return this.parseFunction(this.startNodeAt(startPos, startLoc), false, false, true)
+    if (canBeArrow && !this.canInsertSemicolon()) {
+      if (this.eat(tt.arrow))
+        return this.parseArrowExpression(this.startNodeAt(startPos, startLoc), [id], false)
+      if (this.options.ecmaVersion >= 8 && id.name === "async" && this.type === tt.name) {
+        id = this.parseIdent()
+        if (this.canInsertSemicolon() || !this.eat(tt.arrow))
+          this.unexpected()
+        return this.parseArrowExpression(this.startNodeAt(startPos, startLoc), [id], true)
+      }
+    }
     return id
 
   case tt.regexp:
@@ -294,20 +329,23 @@ pp.parseExprAtom = function(refShorthandDefaultPos) {
     return this.finishNode(node, "Literal")
 
   case tt.parenL:
-    return this.parseParenAndDistinguishExpression(canBeArrow)
+    let start = this.start, expr = this.parseParenAndDistinguishExpression(canBeArrow)
+    if (refDestructuringErrors) {
+      if (refDestructuringErrors.parenthesizedAssign < 0 && !this.isSimpleAssignTarget(expr))
+        refDestructuringErrors.parenthesizedAssign = start
+      if (refDestructuringErrors.parenthesizedBind < 0)
+        refDestructuringErrors.parenthesizedBind = start
+    }
+    return expr
 
   case tt.bracketL:
     node = this.startNode()
     this.next()
-    // check whether this is array comprehension or regular array
-    if (this.options.ecmaVersion >= 7 && this.type === tt._for) {
-      return this.parseComprehension(node, false)
-    }
-    node.elements = this.parseExprList(tt.bracketR, true, true, refShorthandDefaultPos)
+    node.elements = this.parseExprList(tt.bracketR, true, true, refDestructuringErrors)
     return this.finishNode(node, "ArrayExpression")
 
   case tt.braceL:
-    return this.parseObj(false, refShorthandDefaultPos)
+    return this.parseObj(false, refDestructuringErrors)
 
   case tt._function:
     node = this.startNode()
@@ -344,41 +382,49 @@ pp.parseParenExpression = function() {
 }
 
 pp.parseParenAndDistinguishExpression = function(canBeArrow) {
-  let startPos = this.start, startLoc = this.startLoc, val
+  let startPos = this.start, startLoc = this.startLoc, val, allowTrailingComma = this.options.ecmaVersion >= 8
   if (this.options.ecmaVersion >= 6) {
     this.next()
 
-    if (this.options.ecmaVersion >= 7 && this.type === tt._for) {
-      return this.parseComprehension(this.startNodeAt(startPos, startLoc), true)
-    }
-
     let innerStartPos = this.start, innerStartLoc = this.startLoc
-    let exprList = [], first = true
-    let refShorthandDefaultPos = {start: 0}, spreadStart, innerParenStart
+    let exprList = [], first = true, lastIsComma = false
+    let refDestructuringErrors = new DestructuringErrors, oldYieldPos = this.yieldPos, oldAwaitPos = this.awaitPos, spreadStart, innerParenStart
+    this.yieldPos = 0
+    this.awaitPos = 0
     while (this.type !== tt.parenR) {
       first ? first = false : this.expect(tt.comma)
-      if (this.type === tt.ellipsis) {
+      if (allowTrailingComma && this.afterTrailingComma(tt.parenR, true)) {
+        lastIsComma = true
+        break
+      } else if (this.type === tt.ellipsis) {
         spreadStart = this.start
         exprList.push(this.parseParenItem(this.parseRest()))
+        if (this.type === tt.comma) this.raise(this.start, "Comma is not permitted after the rest element")
         break
       } else {
         if (this.type === tt.parenL && !innerParenStart) {
           innerParenStart = this.start
         }
-        exprList.push(this.parseMaybeAssign(false, refShorthandDefaultPos, this.parseParenItem))
+        exprList.push(this.parseMaybeAssign(false, refDestructuringErrors, this.parseParenItem))
       }
     }
     let innerEndPos = this.start, innerEndLoc = this.startLoc
     this.expect(tt.parenR)
 
     if (canBeArrow && !this.canInsertSemicolon() && this.eat(tt.arrow)) {
+      this.checkPatternErrors(refDestructuringErrors, false)
+      this.checkYieldAwaitInDefaultParams()
       if (innerParenStart) this.unexpected(innerParenStart)
-        return this.parseParenArrowList(startPos, startLoc, exprList)
+      this.yieldPos = oldYieldPos
+      this.awaitPos = oldAwaitPos
+      return this.parseParenArrowList(startPos, startLoc, exprList)
     }
 
-    if (!exprList.length) this.unexpected(this.lastTokStart)
+    if (!exprList.length || lastIsComma) this.unexpected(this.lastTokStart)
     if (spreadStart) this.unexpected(spreadStart)
-    if (refShorthandDefaultPos.start) this.unexpected(refShorthandDefaultPos.start)
+    this.checkExpressionErrors(refDestructuringErrors, true)
+    this.yieldPos = oldYieldPos || this.yieldPos
+    this.awaitPos = oldAwaitPos || this.awaitPos
 
     if (exprList.length > 1) {
       val = this.startNodeAt(innerStartPos, innerStartLoc)
@@ -408,9 +454,11 @@ pp.parseParenArrowList = function(startPos, startLoc, exprList) {
   return this.parseArrowExpression(this.startNodeAt(startPos, startLoc), exprList)
 }
 
-// New's precedence is slightly tricky. It must allow its argument
-// to be a `[]` or dot subscript expression, but not a call — at
-// least, not without wrapping it in parentheses. Thus, it uses the
+// New's precedence is slightly tricky. It must allow its argument to
+// be a `[]` or dot subscript expression, but not a call — at least,
+// not without wrapping it in parentheses. Thus, it uses the noCalls
+// argument to parseSubscripts to prevent it from consuming the
+// argument list.
 
 const empty = []
 
@@ -421,12 +469,14 @@ pp.parseNew = function() {
     node.meta = meta
     node.property = this.parseIdent(true)
     if (node.property.name !== "target")
-      this.raise(node.property.start, "The only valid meta property for new is new.target")
+      this.raiseRecoverable(node.property.start, "The only valid meta property for new is new.target")
+    if (!this.inFunction)
+      this.raiseRecoverable(node.start, "new.target can only be used in functions")
     return this.finishNode(node, "MetaProperty")
   }
   let startPos = this.start, startLoc = this.startLoc
   node.callee = this.parseSubscripts(this.parseExprAtom(), startPos, startLoc, true)
-  if (this.eat(tt.parenL)) node.arguments = this.parseExprList(tt.parenR, false)
+  if (this.eat(tt.parenL)) node.arguments = this.parseExprList(tt.parenR, this.options.ecmaVersion >= 8, false)
   else node.arguments = empty
   return this.finishNode(node, "NewExpression")
 }
@@ -436,7 +486,7 @@ pp.parseNew = function() {
 pp.parseTemplateElement = function() {
   let elem = this.startNode()
   elem.value = {
-    raw: this.input.slice(this.start, this.end),
+    raw: this.input.slice(this.start, this.end).replace(/\r\n?/g, '\n'),
     cooked: this.value
   }
   this.next()
@@ -462,7 +512,7 @@ pp.parseTemplate = function() {
 
 // Parse an object literal or binding pattern.
 
-pp.parseObj = function(isPattern, refShorthandDefaultPos) {
+pp.parseObj = function(isPattern, refDestructuringErrors) {
   let node = this.startNode(), first = true, propHash = {}
   node.properties = []
   this.next()
@@ -472,11 +522,11 @@ pp.parseObj = function(isPattern, refShorthandDefaultPos) {
       if (this.afterTrailingComma(tt.braceR)) break
     } else first = false
 
-    let prop = this.startNode(), isGenerator, startPos, startLoc
+    let prop = this.startNode(), isGenerator, isAsync, startPos, startLoc
     if (this.options.ecmaVersion >= 6) {
       prop.method = false
       prop.shorthand = false
-      if (isPattern || refShorthandDefaultPos) {
+      if (isPattern || refDestructuringErrors) {
         startPos = this.start
         startLoc = this.startLoc
       }
@@ -484,46 +534,69 @@ pp.parseObj = function(isPattern, refShorthandDefaultPos) {
         isGenerator = this.eat(tt.star)
     }
     this.parsePropertyName(prop)
-    this.parsePropertyValue(prop, isPattern, isGenerator, startPos, startLoc, refShorthandDefaultPos)
+    if (!isPattern && this.options.ecmaVersion >= 8 && !isGenerator && !prop.computed &&
+        prop.key.type === "Identifier" && prop.key.name === "async" && this.type !== tt.parenL &&
+        this.type !== tt.colon && !this.canInsertSemicolon()) {
+      isAsync = true
+      this.parsePropertyName(prop, refDestructuringErrors)
+    } else {
+      isAsync = false
+    }
+    this.parsePropertyValue(prop, isPattern, isGenerator, isAsync, startPos, startLoc, refDestructuringErrors)
     this.checkPropClash(prop, propHash)
     node.properties.push(this.finishNode(prop, "Property"))
   }
   return this.finishNode(node, isPattern ? "ObjectPattern" : "ObjectExpression")
 }
 
-pp.parsePropertyValue = function(prop, isPattern, isGenerator, startPos, startLoc, refShorthandDefaultPos) {
+pp.parsePropertyValue = function(prop, isPattern, isGenerator, isAsync, startPos, startLoc, refDestructuringErrors) {
+  if ((isGenerator || isAsync) && this.type === tt.colon)
+    this.unexpected()
+
   if (this.eat(tt.colon)) {
-      prop.value = isPattern ? this.parseMaybeDefault(this.start, this.startLoc) : this.parseMaybeAssign(false, refShorthandDefaultPos)
-      prop.kind = "init"
-    } else if (this.options.ecmaVersion >= 6 && this.type === tt.parenL) {
-      if (isPattern) this.unexpected()
-      prop.kind = "init"
-      prop.method = true
-      prop.value = this.parseMethod(isGenerator)
-    } else if (this.options.ecmaVersion >= 5 && !prop.computed && prop.key.type === "Identifier" &&
-               (prop.key.name === "get" || prop.key.name === "set") &&
-               (this.type != tt.comma && this.type != tt.braceR)) {
-      if (isGenerator || isPattern) this.unexpected()
-      prop.kind = prop.key.name
-      this.parsePropertyName(prop)
-      prop.value = this.parseMethod(false)
-    } else if (this.options.ecmaVersion >= 6 && !prop.computed && prop.key.type === "Identifier") {
-      prop.kind = "init"
-      if (isPattern) {
-        if (this.isKeyword(prop.key.name) ||
-            (this.strict && (reservedWords.strictBind(prop.key.name) || reservedWords.strict(prop.key.name))) ||
-            (!this.options.allowReserved && this.isReservedWord(prop.key.name)))
-          this.raise(prop.key.start, "Binding " + prop.key.name)
-        prop.value = this.parseMaybeDefault(startPos, startLoc, prop.key)
-      } else if (this.type === tt.eq && refShorthandDefaultPos) {
-        if (!refShorthandDefaultPos.start)
-          refShorthandDefaultPos.start = this.start
-        prop.value = this.parseMaybeDefault(startPos, startLoc, prop.key)
-      } else {
-        prop.value = prop.key
-      }
-      prop.shorthand = true
-    } else this.unexpected()
+    prop.value = isPattern ? this.parseMaybeDefault(this.start, this.startLoc) : this.parseMaybeAssign(false, refDestructuringErrors)
+    prop.kind = "init"
+  } else if (this.options.ecmaVersion >= 6 && this.type === tt.parenL) {
+    if (isPattern) this.unexpected()
+    prop.kind = "init"
+    prop.method = true
+    prop.value = this.parseMethod(isGenerator, isAsync)
+  } else if (this.options.ecmaVersion >= 5 && !prop.computed && prop.key.type === "Identifier" &&
+             (prop.key.name === "get" || prop.key.name === "set") &&
+             (this.type != tt.comma && this.type != tt.braceR)) {
+    if (isGenerator || isAsync || isPattern) this.unexpected()
+    prop.kind = prop.key.name
+    this.parsePropertyName(prop)
+    prop.value = this.parseMethod(false)
+    let paramCount = prop.kind === "get" ? 0 : 1
+    if (prop.value.params.length !== paramCount) {
+      let start = prop.value.start
+      if (prop.kind === "get")
+        this.raiseRecoverable(start, "getter should have no params")
+      else
+        this.raiseRecoverable(start, "setter should have exactly one param")
+    } else {
+      if (prop.kind === "set" && prop.value.params[0].type === "RestElement")
+        this.raiseRecoverable(prop.value.params[0].start, "Setter cannot use rest params")
+    }
+  } else if (this.options.ecmaVersion >= 6 && !prop.computed && prop.key.type === "Identifier") {
+    if (this.keywords.test(prop.key.name) ||
+        (this.strict ? this.reservedWordsStrict : this.reservedWords).test(prop.key.name) ||
+        (this.inGenerator && prop.key.name == "yield") ||
+        (this.inAsync && prop.key.name == "await"))
+      this.raiseRecoverable(prop.key.start, "'" + prop.key.name + "' can not be used as shorthand property")
+    prop.kind = "init"
+    if (isPattern) {
+      prop.value = this.parseMaybeDefault(startPos, startLoc, prop.key)
+    } else if (this.type === tt.eq && refDestructuringErrors) {
+      if (refDestructuringErrors.shorthandAssign < 0)
+        refDestructuringErrors.shorthandAssign = this.start
+      prop.value = this.parseMaybeDefault(startPos, startLoc, prop.key)
+    } else {
+      prop.value = prop.key
+    }
+    prop.shorthand = true
+  } else this.unexpected()
 }
 
 pp.parsePropertyName = function(prop) {
@@ -537,7 +610,7 @@ pp.parsePropertyName = function(prop) {
       prop.computed = false
     }
   }
-  return prop.key = (this.type === tt.num || this.type === tt.string) ? this.parseExprAtom() : this.parseIdent(true)
+  return prop.key = this.type === tt.num || this.type === tt.string ? this.parseExprAtom() : this.parseIdent(true)
 }
 
 // Initialize empty function node.
@@ -548,65 +621,120 @@ pp.initFunction = function(node) {
     node.generator = false
     node.expression = false
   }
+  if (this.options.ecmaVersion >= 8)
+    node.async = false
 }
 
 // Parse object or class method.
 
-pp.parseMethod = function(isGenerator) {
-  let node = this.startNode()
+pp.parseMethod = function(isGenerator, isAsync) {
+  let node = this.startNode(), oldInGen = this.inGenerator, oldInAsync = this.inAsync,
+      oldYieldPos = this.yieldPos, oldAwaitPos = this.awaitPos, oldInFunc = this.inFunction
+
   this.initFunction(node)
-  this.expect(tt.parenL)
-  node.params = this.parseBindingList(tt.parenR, false, false)
-  let allowExpressionBody
-  if (this.options.ecmaVersion >= 6) {
+  if (this.options.ecmaVersion >= 6)
     node.generator = isGenerator
-    allowExpressionBody = true
-  } else {
-    allowExpressionBody = false
-  }
-  this.parseFunctionBody(node, allowExpressionBody)
+  if (this.options.ecmaVersion >= 8)
+    node.async = !!isAsync
+
+  this.inGenerator = node.generator
+  this.inAsync = node.async
+  this.yieldPos = 0
+  this.awaitPos = 0
+  this.inFunction = true
+
+  this.expect(tt.parenL)
+  node.params = this.parseBindingList(tt.parenR, false, this.options.ecmaVersion >= 8)
+  this.checkYieldAwaitInDefaultParams()
+  this.parseFunctionBody(node, false)
+
+  this.inGenerator = oldInGen
+  this.inAsync = oldInAsync
+  this.yieldPos = oldYieldPos
+  this.awaitPos = oldAwaitPos
+  this.inFunction = oldInFunc
   return this.finishNode(node, "FunctionExpression")
 }
 
 // Parse arrow function expression with given parameters.
 
-pp.parseArrowExpression = function(node, params) {
+pp.parseArrowExpression = function(node, params, isAsync) {
+  let oldInGen = this.inGenerator, oldInAsync = this.inAsync,
+      oldYieldPos = this.yieldPos, oldAwaitPos = this.awaitPos, oldInFunc = this.inFunction
+
   this.initFunction(node)
+  if (this.options.ecmaVersion >= 8)
+    node.async = !!isAsync
+
+  this.inGenerator = false
+  this.inAsync = node.async
+  this.yieldPos = 0
+  this.awaitPos = 0
+  this.inFunction = true
+
   node.params = this.toAssignableList(params, true)
   this.parseFunctionBody(node, true)
+
+  this.inGenerator = oldInGen
+  this.inAsync = oldInAsync
+  this.yieldPos = oldYieldPos
+  this.awaitPos = oldAwaitPos
+  this.inFunction = oldInFunc
   return this.finishNode(node, "ArrowFunctionExpression")
 }
 
 // Parse function body and check parameters.
 
-pp.parseFunctionBody = function(node, allowExpression) {
-  let isExpression = allowExpression && this.type !== tt.braceL
+pp.parseFunctionBody = function(node, isArrowFunction) {
+  let isExpression = isArrowFunction && this.type !== tt.braceL
+  let oldStrict = this.strict, useStrict = false
 
   if (isExpression) {
     node.body = this.parseMaybeAssign()
     node.expression = true
   } else {
+    let nonSimple = this.options.ecmaVersion >= 7 && !this.isSimpleParamList(node.params)
+    if (!oldStrict || nonSimple) {
+      useStrict = this.strictDirective(this.end)
+      // If this is a strict mode function, verify that argument names
+      // are not repeated, and it does not try to bind the words `eval`
+      // or `arguments`.
+      if (useStrict && nonSimple)
+        this.raiseRecoverable(node.start, "Illegal 'use strict' directive in function with non-simple parameter list")
+    }
     // Start a new scope with regard to labels and the `inFunction`
     // flag (restore them to their old value afterwards).
-    let oldInFunc = this.inFunction, oldInGen = this.inGenerator, oldLabels = this.labels
-    this.inFunction = true; this.inGenerator = node.generator; this.labels = []
+    let oldLabels = this.labels
+    this.labels = []
+    if (useStrict) this.strict = true
     node.body = this.parseBlock(true)
     node.expression = false
-    this.inFunction = oldInFunc; this.inGenerator = oldInGen; this.labels = oldLabels
+    this.labels = oldLabels
   }
 
-  // If this is a strict mode function, verify that argument names
-  // are not repeated, and it does not try to bind the words `eval`
-  // or `arguments`.
-  if (this.strict || !isExpression && node.body.body.length && this.isUseStrict(node.body.body[0])) {
-    let nameHash = {}, oldStrict = this.strict
+  if (oldStrict || useStrict) {
     this.strict = true
     if (node.id)
       this.checkLVal(node.id, true)
-    for (let i = 0; i < node.params.length; i++)
-      this.checkLVal(node.params[i], true, nameHash)
+    this.checkParams(node)
     this.strict = oldStrict
+  } else if (isArrowFunction || !this.isSimpleParamList(node.params)) {
+    this.checkParams(node)
   }
+}
+
+pp.isSimpleParamList = function(params) {
+  for (let i = 0; i < params.length; i++)
+    if (params[i].type !== "Identifier") return false
+  return true
+}
+
+// Checks function params for various disallowed patterns such as using "eval"
+// or "arguments" and duplicate parameters.
+
+pp.checkParams = function(node) {
+  let nameHash = {}
+  for (let i = 0; i < node.params.length; i++) this.checkLVal(node.params[i], true, nameHash)
 }
 
 // Parses a comma-separated list of expressions, and returns them as
@@ -615,7 +743,7 @@ pp.parseFunctionBody = function(node, allowExpression) {
 // nothing in between them to be parsed as `null` (which is needed
 // for array literals).
 
-pp.parseExprList = function(close, allowTrailingComma, allowEmpty, refShorthandDefaultPos) {
+pp.parseExprList = function(close, allowTrailingComma, allowEmpty, refDestructuringErrors) {
   let elts = [], first = true
   while (!this.eat(close)) {
     if (!first) {
@@ -623,14 +751,17 @@ pp.parseExprList = function(close, allowTrailingComma, allowEmpty, refShorthandD
       if (allowTrailingComma && this.afterTrailingComma(close)) break
     } else first = false
 
-    if (allowEmpty && this.type === tt.comma) {
-      elts.push(null)
+    let elt
+    if (allowEmpty && this.type === tt.comma)
+      elt = null
+    else if (this.type === tt.ellipsis) {
+      elt = this.parseSpread(refDestructuringErrors)
+      if (refDestructuringErrors && this.type === tt.comma && refDestructuringErrors.trailingComma < 0)
+        refDestructuringErrors.trailingComma = this.start
     } else {
-      if (this.type === tt.ellipsis)
-        elts.push(this.parseSpread(refShorthandDefaultPos))
-      else
-        elts.push(this.parseMaybeAssign(false, refShorthandDefaultPos))
+      elt = this.parseMaybeAssign(false, refDestructuringErrors)
     }
+    elts.push(elt)
   }
   return elts
 }
@@ -643,12 +774,14 @@ pp.parseIdent = function(liberal) {
   let node = this.startNode()
   if (liberal && this.options.allowReserved == "never") liberal = false
   if (this.type === tt.name) {
-    if (!liberal &&
-        ((!this.options.allowReserved && this.isReservedWord(this.value)) ||
-         (this.strict && reservedWords.strict(this.value)) &&
-         (this.options.ecmaVersion >= 6 ||
-          this.input.slice(this.start, this.end).indexOf("\\") == -1)))
-      this.raise(this.start, "The keyword '" + this.value + "' is reserved")
+    if (!liberal && (this.strict ? this.reservedWordsStrict : this.reservedWords).test(this.value) &&
+        (this.options.ecmaVersion >= 6 ||
+         this.input.slice(this.start, this.end).indexOf("\\") == -1))
+      this.raiseRecoverable(this.start, "The keyword '" + this.value + "' is reserved")
+    if (this.inGenerator && this.value === "yield")
+      this.raiseRecoverable(this.start, "Can not use 'yield' as identifier inside a generator")
+    if (this.inAsync && this.value === "await")
+      this.raiseRecoverable(this.start, "Can not use 'await' as identifier inside an async function")
     node.name = this.value
   } else if (liberal && this.type.keyword) {
     node.name = this.type.keyword
@@ -662,6 +795,8 @@ pp.parseIdent = function(liberal) {
 // Parses yield expression inside generator.
 
 pp.parseYield = function() {
+  if (!this.yieldPos) this.yieldPos = this.start
+
   let node = this.startNode()
   this.next()
   if (this.type == tt.semi || this.canInsertSemicolon() || (this.type != tt.star && !this.type.startsExpr)) {
@@ -674,24 +809,11 @@ pp.parseYield = function() {
   return this.finishNode(node, "YieldExpression")
 }
 
-// Parses array and generator comprehensions.
+pp.parseAwait = function() {
+  if (!this.awaitPos) this.awaitPos = this.start
 
-pp.parseComprehension = function(node, isGenerator) {
-  node.blocks = []
-  while (this.type === tt._for) {
-    let block = this.startNode()
-    this.next()
-    this.expect(tt.parenL)
-    block.left = this.parseBindingAtom()
-    this.checkLVal(block.left, true)
-    this.expectContextual("of")
-    block.right = this.parseExpression()
-    this.expect(tt.parenR)
-    node.blocks.push(this.finishNode(block, "ComprehensionBlock"))
-  }
-  node.filter = this.eat(tt._if) ? this.parseParenExpression() : null
-  node.body = this.parseExpression()
-  this.expect(isGenerator ? tt.parenR : tt.bracketR)
-  node.generator = isGenerator
-  return this.finishNode(node, "ComprehensionExpression")
+  let node = this.startNode()
+  this.next()
+  node.argument = this.parseMaybeUnary(null, true)
+  return this.finishNode(node, "AwaitExpression")
 }

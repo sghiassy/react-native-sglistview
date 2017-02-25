@@ -29,16 +29,15 @@
 // invasive changes and simplifications without creating a complicated
 // tangle.
 
-import * as acorn from ".."
-import {LooseParser} from "./state"
+import {addLooseExports, defaultOptions} from "../index"
+import {LooseParser, pluginsLoose} from "./state"
 import "./tokenize"
-import "./parseutil"
 import "./statement"
 import "./expression"
 
-export {LooseParser} from "./state"
+export {LooseParser, pluginsLoose} from "./state"
 
-acorn.defaultOptions.tabSize = 4
+defaultOptions.tabSize = 4
 
 export function parse_dammit(input, options) {
   let p = new LooseParser(input, options)
@@ -46,5 +45,4 @@ export function parse_dammit(input, options) {
   return p.parseTopLevel()
 }
 
-acorn.parse_dammit = parse_dammit
-acorn.LooseParser = LooseParser
+addLooseExports(parse_dammit, LooseParser, pluginsLoose)

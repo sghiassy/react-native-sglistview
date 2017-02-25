@@ -1,6 +1,8 @@
 import {types as tt} from "./tokentype"
 import {Parser} from "./state"
-import {lineBreak} from "./whitespace"
+import {lineBreak, skipWhiteSpace} from "./whitespace"
+import {isIdentifierStart, isIdentifierChar} from "./identifier"
+import {DestructuringErrors} from "./parseutil"
 
 const pp = Parser.prototype
 
@@ -12,13 +14,11 @@ const pp = Parser.prototype
 // to its body instead of creating a new node.
 
 pp.parseTopLevel = function(node) {
-  let first = true
+  let exports = {}
   if (!node.body) node.body = []
   while (this.type !== tt.eof) {
-    let stmt = this.parseStatement(true, true)
+    let stmt = this.parseStatement(true, true, exports)
     node.body.push(stmt)
-    if (first && this.isUseStrict(stmt)) this.setStrict(true)
-    first = false
   }
   this.next()
   if (this.options.ecmaVersion >= 6) {
@@ -29,6 +29,35 @@ pp.parseTopLevel = function(node) {
 
 const loopLabel = {kind: "loop"}, switchLabel = {kind: "switch"}
 
+pp.isLet = function() {
+  if (this.type !== tt.name || this.options.ecmaVersion < 6 || this.value != "let") return false
+  skipWhiteSpace.lastIndex = this.pos
+  let skip = skipWhiteSpace.exec(this.input)
+  let next = this.pos + skip[0].length, nextCh = this.input.charCodeAt(next)
+  if (nextCh === 91 || nextCh == 123) return true // '{' and '['
+  if (isIdentifierStart(nextCh, true)) {
+    for (var pos = next + 1; isIdentifierChar(this.input.charCodeAt(pos), true); ++pos) {}
+    let ident = this.input.slice(next, pos)
+    if (!this.isKeyword(ident)) return true
+  }
+  return false
+}
+
+// check 'async [no LineTerminator here] function'
+// - 'async /*foo*/ function' is OK.
+// - 'async /*\n*/ function' is invalid.
+pp.isAsyncFunction = function() {
+  if (this.type !== tt.name || this.options.ecmaVersion < 8 || this.value != "async")
+    return false
+
+  skipWhiteSpace.lastIndex = this.pos
+  let skip = skipWhiteSpace.exec(this.input)
+  let next = this.pos + skip[0].length
+  return !lineBreak.test(this.input.slice(this.pos, next)) &&
+    this.input.slice(next, next + 8) === "function" &&
+    (next + 8 == this.input.length || !isIdentifierChar(this.input.charAt(next + 8)))
+}
+
 // Parse a single statement.
 //
 // If expecting a statement and finding a slash operator, parse a
@@ -36,8 +65,13 @@ const loopLabel = {kind: "loop"}, switchLabel = {kind: "switch"}
 // `if (foo) /blah/.exec(foo)`, where looking at the previous token
 // does not help.
 
-pp.parseStatement = function(declaration, topLevel) {
-  let starttype = this.type, node = this.startNode()
+pp.parseStatement = function(declaration, topLevel, exports) {
+  let starttype = this.type, node = this.startNode(), kind
+
+  if (this.isLet()) {
+    starttype = tt._var
+    kind = "let"
+  }
 
   // Most types of statements are recognized by the keyword they
   // start with. Many are trivial to parse, some require a bit of
@@ -50,7 +84,7 @@ pp.parseStatement = function(declaration, topLevel) {
   case tt._for: return this.parseForStatement(node)
   case tt._function:
     if (!declaration && this.options.ecmaVersion >= 6) this.unexpected()
-    return this.parseFunctionStatement(node)
+    return this.parseFunctionStatement(node, false)
   case tt._class:
     if (!declaration) this.unexpected()
     return this.parseClass(node, true)
@@ -59,8 +93,10 @@ pp.parseStatement = function(declaration, topLevel) {
   case tt._switch: return this.parseSwitchStatement(node)
   case tt._throw: return this.parseThrowStatement(node)
   case tt._try: return this.parseTryStatement(node)
-  case tt._let: case tt._const: if (!declaration) this.unexpected() // NOTE: falls through to _var
-  case tt._var: return this.parseVarStatement(node, starttype)
+  case tt._const: case tt._var:
+    kind = kind || this.value
+    if (!declaration && kind != "var") this.unexpected()
+    return this.parseVarStatement(node, kind)
   case tt._while: return this.parseWhileStatement(node)
   case tt._with: return this.parseWithStatement(node)
   case tt.braceL: return this.parseBlock()
@@ -73,7 +109,7 @@ pp.parseStatement = function(declaration, topLevel) {
       if (!this.inModule)
         this.raise(this.start, "'import' and 'export' may appear only with 'sourceType: module'")
     }
-    return starttype === tt._import ? this.parseImport(node) : this.parseExport(node)
+    return starttype === tt._import ? this.parseImport(node) : this.parseExport(node, exports)
 
     // If the statement does not start with a statement keyword or a
     // brace, it's an ExpressionStatement or LabeledStatement. We
@@ -81,6 +117,11 @@ pp.parseStatement = function(declaration, topLevel) {
     // next token is a colon and the expression was a simple
     // Identifier node, we switch to interpreting it as a label.
   default:
+    if (this.isAsyncFunction() && declaration) {
+      this.next()
+      return this.parseFunctionStatement(node, true)
+    }
+
     let maybeName = this.value, expr = this.parseExpression()
     if (starttype === tt.name && expr.type === "Identifier" && this.eat(tt.colon))
       return this.parseLabeledStatement(node, maybeName, expr)
@@ -144,38 +185,45 @@ pp.parseForStatement = function(node) {
   this.labels.push(loopLabel)
   this.expect(tt.parenL)
   if (this.type === tt.semi) return this.parseFor(node, null)
-  if (this.type === tt._var || this.type === tt._let || this.type === tt._const) {
-    let init = this.startNode(), varKind = this.type
+  let isLet = this.isLet()
+  if (this.type === tt._var || this.type === tt._const || isLet) {
+    let init = this.startNode(), kind = isLet ? "let" : this.value
     this.next()
-    this.parseVar(init, true, varKind)
+    this.parseVar(init, true, kind)
     this.finishNode(init, "VariableDeclaration")
     if ((this.type === tt._in || (this.options.ecmaVersion >= 6 && this.isContextual("of"))) && init.declarations.length === 1 &&
-        !(varKind !== tt._var && init.declarations[0].init))
+        !(kind !== "var" && init.declarations[0].init))
       return this.parseForIn(node, init)
     return this.parseFor(node, init)
   }
-  let refShorthandDefaultPos = {start: 0}
-  let init = this.parseExpression(true, refShorthandDefaultPos)
+  let refDestructuringErrors = new DestructuringErrors
+  let init = this.parseExpression(true, refDestructuringErrors)
   if (this.type === tt._in || (this.options.ecmaVersion >= 6 && this.isContextual("of"))) {
     this.toAssignable(init)
     this.checkLVal(init)
+    this.checkPatternErrors(refDestructuringErrors, true)
     return this.parseForIn(node, init)
-  } else if (refShorthandDefaultPos.start) {
-    this.unexpected(refShorthandDefaultPos.start)
+  } else {
+    this.checkExpressionErrors(refDestructuringErrors, true)
   }
   return this.parseFor(node, init)
 }
 
-pp.parseFunctionStatement = function(node) {
+pp.parseFunctionStatement = function(node, isAsync) {
   this.next()
-  return this.parseFunction(node, true)
+  return this.parseFunction(node, true, false, isAsync)
+}
+
+pp.isFunction = function() {
+  return this.type === tt._function || this.isAsyncFunction()
 }
 
 pp.parseIfStatement = function(node) {
   this.next()
   node.test = this.parseParenExpression()
-  node.consequent = this.parseStatement(false)
-  node.alternate = this.eat(tt._else) ? this.parseStatement(false) : null
+  // allow function declarations in branches, but only in non-strict mode
+  node.consequent = this.parseStatement(!this.strict && this.isFunction())
+  node.alternate = this.eat(tt._else) ? this.parseStatement(!this.strict && this.isFunction()) : null
   return this.finishNode(node, "IfStatement")
 }
 
@@ -204,7 +252,7 @@ pp.parseSwitchStatement = function(node) {
   // nodes. `cur` is used to keep the node that we are currently
   // adding statements to.
 
-  for (var cur, sawDefault; this.type != tt.braceR;) {
+  for (var cur, sawDefault = false; this.type != tt.braceR;) {
     if (this.type === tt._case || this.type === tt._default) {
       let isCase = this.type === tt._case
       if (cur) this.finishNode(cur, "SwitchCase")
@@ -214,7 +262,7 @@ pp.parseSwitchStatement = function(node) {
       if (isCase) {
         cur.test = this.parseExpression()
       } else {
-        if (sawDefault) this.raise(this.lastTokStart, "Multiple default clauses")
+        if (sawDefault) this.raiseRecoverable(this.lastTokStart, "Multiple default clauses")
         sawDefault = true
         cur.test = null
       }
@@ -254,11 +302,9 @@ pp.parseTryStatement = function(node) {
     clause.param = this.parseBindingAtom()
     this.checkLVal(clause.param, true)
     this.expect(tt.parenR)
-    clause.guard = null
     clause.body = this.parseBlock()
     node.handler = this.finishNode(clause, "CatchClause")
   }
-  node.guardedHandlers = empty
   node.finalizer = this.eat(tt._finally) ? this.parseBlock() : null
   if (!node.handler && !node.finalizer)
     this.raise(node.start, "Missing catch or finally clause")
@@ -298,8 +344,19 @@ pp.parseLabeledStatement = function(node, maybeName, expr) {
   for (let i = 0; i < this.labels.length; ++i)
     if (this.labels[i].name === maybeName) this.raise(expr.start, "Label '" + maybeName + "' is already declared")
   let kind = this.type.isLoop ? "loop" : this.type === tt._switch ? "switch" : null
-  this.labels.push({name: maybeName, kind: kind})
+  for (let i = this.labels.length - 1; i >= 0; i--) {
+    let label = this.labels[i]
+    if (label.statementStart == node.start) {
+      label.statementStart = this.start
+      label.kind = kind
+    } else break
+  }
+  this.labels.push({name: maybeName, kind: kind, statementStart: this.start})
   node.body = this.parseStatement(true)
+  if (node.body.type == "ClassDeclaration" ||
+      node.body.type == "VariableDeclaration" && (this.strict || node.body.kind != "var") ||
+      node.body.type == "FunctionDeclaration" && (this.strict || node.body.generator))
+    this.raiseRecoverable(node.body.start, "Invalid labeled declaration")
   this.labels.pop()
   node.label = expr
   return this.finishNode(node, "LabeledStatement")
@@ -315,20 +372,14 @@ pp.parseExpressionStatement = function(node, expr) {
 // strict"` declarations when `allowStrict` is true (used for
 // function bodies).
 
-pp.parseBlock = function(allowStrict) {
-  let node = this.startNode(), first = true, oldStrict
+pp.parseBlock = function() {
+  let node = this.startNode()
   node.body = []
   this.expect(tt.braceL)
   while (!this.eat(tt.braceR)) {
     let stmt = this.parseStatement(true)
     node.body.push(stmt)
-    if (first && allowStrict && this.isUseStrict(stmt)) {
-      oldStrict = this.strict
-      this.setStrict(this.strict = true)
-    }
-    first = false
   }
-  if (oldStrict === false) this.setStrict(false)
   return this.finishNode(node, "BlockStatement")
 }
 
@@ -366,13 +417,13 @@ pp.parseForIn = function(node, init) {
 
 pp.parseVar = function(node, isFor, kind) {
   node.declarations = []
-  node.kind = kind.keyword
+  node.kind = kind
   for (;;) {
     let decl = this.startNode()
     this.parseVarId(decl)
     if (this.eat(tt.eq)) {
       decl.init = this.parseMaybeAssign(isFor)
-    } else if (kind === tt._const && !(this.type === tt._in || (this.options.ecmaVersion >= 6 && this.isContextual("of")))) {
+    } else if (kind === "const" && !(this.type === tt._in || (this.options.ecmaVersion >= 6 && this.isContextual("of")))) {
       this.unexpected()
     } else if (decl.id.type != "Identifier" && !(isFor && (this.type === tt._in || this.isContextual("of")))) {
       this.raise(this.lastTokEnd, "Complex binding patterns require an initialization value")
@@ -393,20 +444,43 @@ pp.parseVarId = function(decl) {
 // Parse a function declaration or literal (depending on the
 // `isStatement` parameter).
 
-pp.parseFunction = function(node, isStatement, allowExpressionBody) {
+pp.parseFunction = function(node, isStatement, allowExpressionBody, isAsync) {
   this.initFunction(node)
-  if (this.options.ecmaVersion >= 6)
+  if (this.options.ecmaVersion >= 6 && !isAsync)
     node.generator = this.eat(tt.star)
-  if (isStatement || this.type === tt.name)
+  if (this.options.ecmaVersion >= 8)
+    node.async = !!isAsync
+
+  if (isStatement == null)
+    isStatement = this.type == tt.name
+  if (isStatement)
+    node.id = this.parseIdent()
+
+  let oldInGen = this.inGenerator, oldInAsync = this.inAsync,
+      oldYieldPos = this.yieldPos, oldAwaitPos = this.awaitPos, oldInFunc = this.inFunction
+  this.inGenerator = node.generator
+  this.inAsync = node.async
+  this.yieldPos = 0
+  this.awaitPos = 0
+  this.inFunction = true
+
+  if (!isStatement && this.type === tt.name)
     node.id = this.parseIdent()
   this.parseFunctionParams(node)
   this.parseFunctionBody(node, allowExpressionBody)
+
+  this.inGenerator = oldInGen
+  this.inAsync = oldInAsync
+  this.yieldPos = oldYieldPos
+  this.awaitPos = oldAwaitPos
+  this.inFunction = oldInFunc
   return this.finishNode(node, isStatement ? "FunctionDeclaration" : "FunctionExpression")
 }
 
 pp.parseFunctionParams = function(node) {
   this.expect(tt.parenL)
-  node.params = this.parseBindingList(tt.parenR, false, false)
+  node.params = this.parseBindingList(tt.parenR, false, this.options.ecmaVersion >= 8, true)
+  this.checkYieldAwaitInDefaultParams()
 }
 
 // Parse a class declaration or literal (depending on the
@@ -414,6 +488,7 @@ pp.parseFunctionParams = function(node) {
 
 pp.parseClass = function(node, isStatement) {
   this.next()
+  if (isStatement == null) isStatement = this.type === tt.name
   this.parseClassId(node, isStatement)
   this.parseClassSuper(node)
   let classBody = this.startNode()
@@ -424,6 +499,7 @@ pp.parseClass = function(node, isStatement) {
     if (this.eat(tt.semi)) continue
     let method = this.startNode()
     let isGenerator = this.eat(tt.star)
+    let isAsync = false
     let isMaybeStatic = this.type === tt.name && this.value === "static"
     this.parsePropertyName(method)
     method.static = isMaybeStatic && this.type !== tt.parenL
@@ -432,11 +508,17 @@ pp.parseClass = function(node, isStatement) {
       isGenerator = this.eat(tt.star)
       this.parsePropertyName(method)
     }
+    if (this.options.ecmaVersion >= 8 && !isGenerator && !method.computed &&
+        method.key.type === "Identifier" && method.key.name === "async" && this.type !== tt.parenL &&
+        !this.canInsertSemicolon()) {
+      isAsync = true
+      this.parsePropertyName(method)
+    }
     method.kind = "method"
+    let isGetSet = false
     if (!method.computed) {
       let {key} = method
-      let isGetSet = false
-      if (!isGenerator && key.type === "Identifier" && this.type !== tt.parenL && (key.name === "get" || key.name === "set")) {
+      if (!isGenerator && !isAsync && key.type === "Identifier" && this.type !== tt.parenL && (key.name === "get" || key.name === "set")) {
         isGetSet = true
         method.kind = key.name
         key = this.parsePropertyName(method)
@@ -446,18 +528,32 @@ pp.parseClass = function(node, isStatement) {
         if (hadConstructor) this.raise(key.start, "Duplicate constructor in the same class")
         if (isGetSet) this.raise(key.start, "Constructor can't have get/set modifier")
         if (isGenerator) this.raise(key.start, "Constructor can't be a generator")
+        if (isAsync) this.raise(key.start, "Constructor can't be an async method")
         method.kind = "constructor"
         hadConstructor = true
       }
     }
-    this.parseClassMethod(classBody, method, isGenerator)
+    this.parseClassMethod(classBody, method, isGenerator, isAsync)
+    if (isGetSet) {
+      let paramCount = method.kind === "get" ? 0 : 1
+      if (method.value.params.length !== paramCount) {
+        let start = method.value.start
+        if (method.kind === "get")
+          this.raiseRecoverable(start, "getter should have no params")
+        else
+          this.raiseRecoverable(start, "setter should have exactly one param")
+      } else {
+        if (method.kind === "set" && method.value.params[0].type === "RestElement")
+          this.raiseRecoverable(method.value.params[0].start, "Setter cannot use rest params")
+      }
+    }
   }
   node.body = this.finishNode(classBody, "ClassBody")
   return this.finishNode(node, isStatement ? "ClassDeclaration" : "ClassExpression")
 }
 
-pp.parseClassMethod = function(classBody, method, isGenerator) {
-  method.value = this.parseMethod(isGenerator)
+pp.parseClassMethod = function(classBody, method, isGenerator, isAsync) {
+  method.value = this.parseMethod(isGenerator, isAsync)
   classBody.body.push(this.finishNode(method, "MethodDefinition"))
 }
 
@@ -471,7 +567,7 @@ pp.parseClassSuper = function(node) {
 
 // Parses module export declaration.
 
-pp.parseExport = function(node) {
+pp.parseExport = function(node, exports) {
   this.next()
   // export * from '...'
   if (this.eat(tt.star)) {
@@ -481,32 +577,44 @@ pp.parseExport = function(node) {
     return this.finishNode(node, "ExportAllDeclaration")
   }
   if (this.eat(tt._default)) { // export default ...
-    let expr = this.parseMaybeAssign()
-    let needsSemi = true
-    if (expr.type == "FunctionExpression" ||
-        expr.type == "ClassExpression") {
-      needsSemi = false
-      if (expr.id) {
-        expr.type = expr.type == "FunctionExpression"
-          ? "FunctionDeclaration"
-          : "ClassDeclaration"
-      }
+    this.checkExport(exports, "default", this.lastTokStart)
+    let isAsync
+    if (this.type === tt._function || (isAsync = this.isAsyncFunction())) {
+      let fNode = this.startNode()
+      this.next()
+      if (isAsync) this.next()
+      node.declaration = this.parseFunction(fNode, null, false, isAsync)
+    } else if (this.type === tt._class) {
+      let cNode = this.startNode()
+      node.declaration = this.parseClass(cNode, null)
+    } else {
+      node.declaration = this.parseMaybeAssign()
+      this.semicolon()
     }
-    node.declaration = expr
-    if (needsSemi) this.semicolon()
     return this.finishNode(node, "ExportDefaultDeclaration")
   }
   // export var|const|let|function|class ...
   if (this.shouldParseExportStatement()) {
     node.declaration = this.parseStatement(true)
+    if (node.declaration.type === "VariableDeclaration")
+      this.checkVariableExport(exports, node.declaration.declarations)
+    else
+      this.checkExport(exports, node.declaration.id.name, node.declaration.id.start)
     node.specifiers = []
     node.source = null
   } else { // export { x, y as z } [from '...']
     node.declaration = null
-    node.specifiers = this.parseExportSpecifiers()
+    node.specifiers = this.parseExportSpecifiers(exports)
     if (this.eatContextual("from")) {
       node.source = this.type === tt.string ? this.parseExprAtom() : this.unexpected()
     } else {
+      // check for keywords used as local names
+      for (let i = 0; i < node.specifiers.length; i++) {
+        if (this.keywords.test(node.specifiers[i].local.name) || this.reservedWords.test(node.specifiers[i].local.name)) {
+          this.unexpected(node.specifiers[i].local.start)
+        }
+      }
+
       node.source = null
     }
     this.semicolon()
@@ -514,13 +622,49 @@ pp.parseExport = function(node) {
   return this.finishNode(node, "ExportNamedDeclaration")
 }
 
+pp.checkExport = function(exports, name, pos) {
+  if (!exports) return
+  if (Object.prototype.hasOwnProperty.call(exports, name))
+    this.raiseRecoverable(pos, "Duplicate export '" + name + "'")
+  exports[name] = true
+}
+
+pp.checkPatternExport = function(exports, pat) {
+  let type = pat.type
+  if (type == "Identifier")
+    this.checkExport(exports, pat.name, pat.start)
+  else if (type == "ObjectPattern")
+    for (let i = 0; i < pat.properties.length; ++i)
+      this.checkPatternExport(exports, pat.properties[i].value)
+  else if (type == "ArrayPattern")
+    for (let i = 0; i < pat.elements.length; ++i) {
+      let elt = pat.elements[i]
+      if (elt) this.checkPatternExport(exports, elt)
+    }
+  else if (type == "AssignmentPattern")
+    this.checkPatternExport(exports, pat.left)
+  else if (type == "ParenthesizedExpression")
+    this.checkPatternExport(exports, pat.expression)
+}
+
+pp.checkVariableExport = function(exports, decls) {
+  if (!exports) return
+  for (let i = 0; i < decls.length; i++)
+    this.checkPatternExport(exports, decls[i].id)
+}
+
 pp.shouldParseExportStatement = function() {
-  return this.type.keyword
+  return this.type.keyword === "var"
+    || this.type.keyword === "const"
+    || this.type.keyword === "class"
+    || this.type.keyword === "function"
+    || this.isLet()
+    || this.isAsyncFunction()
 }
 
 // Parses a comma-separated list of module exports.
 
-pp.parseExportSpecifiers = function() {
+pp.parseExportSpecifiers = function(exports) {
   let nodes = [], first = true
   // export { x, y as z } [from '...']
   this.expect(tt.braceL)
@@ -531,8 +675,9 @@ pp.parseExportSpecifiers = function() {
     } else first = false
 
     let node = this.startNode()
-    node.local = this.parseIdent(this.type === tt._default)
+    node.local = this.parseIdent(true)
     node.exported = this.eatContextual("as") ? this.parseIdent(true) : node.local
+    this.checkExport(exports, node.exported.name, node.exported.start)
     nodes.push(this.finishNode(node, "ExportSpecifier"))
   }
   return nodes
@@ -546,7 +691,6 @@ pp.parseImport = function(node) {
   if (this.type === tt.string) {
     node.specifiers = empty
     node.source = this.parseExprAtom()
-    node.kind = ""
   } else {
     node.specifiers = this.parseImportSpecifiers()
     this.expectContextual("from")
@@ -586,7 +730,13 @@ pp.parseImportSpecifiers = function() {
 
     let node = this.startNode()
     node.imported = this.parseIdent(true)
-    node.local = this.eatContextual("as") ? this.parseIdent() : node.imported
+    if (this.eatContextual("as")) {
+      node.local = this.parseIdent()
+    } else {
+      node.local = node.imported
+      if (this.isKeyword(node.local.name)) this.unexpected(node.local.start)
+      if (this.reservedWordsStrict.test(node.local.name)) this.raiseRecoverable(node.local.start, "The keyword '" + node.local.name + "' is reserved")
+    }
     this.checkLVal(node.local, true)
     nodes.push(this.finishNode(node, "ImportSpecifier"))
   }

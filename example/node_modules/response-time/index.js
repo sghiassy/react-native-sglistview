@@ -6,6 +6,8 @@
  * MIT Licensed
  */
 
+'use strict'
+
 /**
  * Module dependencies
  * @api private
@@ -32,7 +34,7 @@ module.exports = responseTime
  * @api public
  */
 
-function responseTime(options) {
+function responseTime (options) {
   var opts = options || {}
 
   if (typeof options === 'number') {
@@ -46,10 +48,10 @@ function responseTime(options) {
     ? createSetHeader(opts)
     : opts
 
-  return function responseTime(req, res, next) {
+  return function responseTime (req, res, next) {
     var startAt = process.hrtime()
 
-    onHeaders(res, function onHeaders() {
+    onHeaders(res, function onHeaders () {
       var diff = process.hrtime(startAt)
       var time = diff[0] * 1e3 + diff[1] * 1e-6
 
@@ -65,7 +67,7 @@ function responseTime(options) {
  * @api private
  */
 
-function createSetHeader(options) {
+function createSetHeader (options) {
   // response time digits
   var digits = options.digits !== undefined
     ? options.digits
@@ -79,7 +81,7 @@ function createSetHeader(options) {
     ? Boolean(options.suffix)
     : true
 
-  return function setResponseHeader(req, res, time) {
+  return function setResponseHeader (req, res, time) {
     if (res.getHeader(header)) {
       return
     }

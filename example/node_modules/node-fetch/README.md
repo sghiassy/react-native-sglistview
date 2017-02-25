@@ -11,11 +11,9 @@ A light-weight module that brings `window.fetch` to Node.js
 
 # Motivation
 
-I really like the notion of Matt Andrews' [isomorphic-fetch](https://github.com/matthew-andrews/isomorphic-fetch): it bridges the API gap between client-side and server-side http requests, so developers have less to worry about.
+Instead of implementing `XMLHttpRequest` in Node.js to run browser-specific [Fetch polyfill](https://github.com/github/fetch), why not go from native `http` to `Fetch` API directly? Hence `node-fetch`, minimal code for a `window.fetch` compatible API on Node.js runtime.
 
-Instead of implementing `XMLHttpRequest` in node to run browser-specific [fetch polyfill](https://github.com/github/fetch), why not go from node's `http` to `fetch` API directly? Node has native stream support, browserify build targets (browsers) don't, so underneath they are going to be vastly different anyway.
-
-Hence `node-fetch`, minimal code for a `window.fetch` compatible API on Node.js runtime.
+See Matt Andrews' [isomorphic-fetch](https://github.com/matthew-andrews/isomorphic-fetch) for isomorphic usage (exports `node-fetch` for server-side, `whatwg-fetch` for client-side).
 
 
 # Features
@@ -24,8 +22,8 @@ Hence `node-fetch`, minimal code for a `window.fetch` compatible API on Node.js 
 - Make conscious trade-off when following [whatwg fetch spec](https://fetch.spec.whatwg.org/) and [stream spec](https://streams.spec.whatwg.org/) implementation details, document known difference.
 - Use native promise, but allow substituting it with [insert your favorite promise library].
 - Use native stream for body, on both request and response.
-- Decode content encoding (gzip/deflate) properly, and convert string output (such as `res.text()` and `res.json()`) to utf-8 automatically.
-- Useful extensions such as timeout, redirect limit, response size limit, explicit reject errors.
+- Decode content encoding (gzip/deflate) properly, and convert string output (such as `res.text()` and `res.json()`) to UTF-8 automatically.
+- Useful extensions such as timeout, redirect limit, response size limit, [explicit errors](https://github.com/bitinn/node-fetch/blob/master/ERROR-HANDLING.md) for troubleshooting.
 
 
 # Difference from client-side fetch
@@ -45,7 +43,7 @@ Hence `node-fetch`, minimal code for a `window.fetch` compatible API on Node.js 
 ```javascript
 var fetch = require('node-fetch');
 
-// If you are not on node v0.12, set a Promise library first, eg.
+// if you are on node v0.10, set a Promise library first, eg.
 // fetch.Promise = require('bluebird');
 
 // plain text or html
@@ -64,6 +62,36 @@ fetch('https://api.github.com/users/github')
 		return res.json();
 	}).then(function(json) {
 		console.log(json);
+	});
+
+// catching network error
+// 3xx-5xx responses are NOT network errors, and should be handled in then()
+// you only need one catch() at the end of your promise chain
+
+fetch('http://domain.invalid/')
+	.catch(function(err) {
+		console.log(err);
+	});
+
+// stream
+// the node.js way is to use stream when possible
+
+fetch('https://assets-cdn.github.com/images/modules/logos_page/Octocat.png')
+	.then(function(res) {
+		var dest = fs.createWriteStream('./octocat.png');
+		res.body.pipe(dest);
+	});
+
+// buffer
+// if you prefer to cache binary data in full, use buffer()
+// note that buffer() is a node-fetch only API
+
+var fileType = require('file-type');
+fetch('https://assets-cdn.github.com/images/modules/logos_page/Octocat.png')
+	.then(function(res) {
+		return res.buffer();
+	}).then(function(buffer) {
+		fileType(buffer);
 	});
 
 // meta
@@ -110,6 +138,7 @@ fetch('http://httpbin.org/post', { method: 'POST', body: form })
 	});
 
 // post with form-data (custom headers)
+// note that getHeaders() is non-standard API
 
 var FormData = require('form-data');
 var form = new FormData();
@@ -121,7 +150,7 @@ fetch('http://httpbin.org/post', { method: 'POST', body: form, headers: form.get
 		console.log(json);
 	});
 
-// node 0.11+, yield with co
+// node 0.12+, yield with co
 
 var co = require('co');
 co(function *() {
@@ -152,9 +181,9 @@ default values are shown, note that only `method`, `headers`, `redirect` and `bo
 {
 	method: 'GET'
 	, headers: {}        // request header. format {a:'1'} or {b:['1','2','3']}
-	, redirect: 'follow' // set to 'manual' to extract redirect headers, `error` to reject redirect
+	, redirect: 'follow' // set to `manual` to extract redirect headers, `error` to reject redirect
 	, follow: 20         // maximum redirect count. 0 to not follow redirect
-	, timeout: 0         // req/res timeout in ms. 0 to disable (os limit still applies), timeout reset on redirect
+	, timeout: 0         // req/res timeout in ms, it resets on redirect. 0 to disable (OS limit applies)
 	, compress: true     // support gzip/deflate content encoding. false to disable
 	, size: 0            // maximum response body size in bytes. 0 to disable
 	, body: empty        // request body. can be a string, buffer, readable stream

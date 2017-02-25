@@ -1,9 +1,9 @@
-/*istanbul ignore next*/"use strict";
+"use strict";
 
 exports.__esModule = true;
 
-exports.default = function ( /*istanbul ignore next*/_ref) {
-  /*istanbul ignore next*/var t = _ref.types;
+exports.default = function (_ref) {
+  var t = _ref.types;
 
   function makeTrace(fileNameIdentifier, lineNumber) {
     var fileLineLiteral = lineNumber != null ? t.numericLiteral(lineNumber) : t.nullLiteral();
@@ -12,12 +12,11 @@ exports.default = function ( /*istanbul ignore next*/_ref) {
     return t.objectExpression([fileNameProperty, lineNumberProperty]);
   }
 
-  var visitor = { /*istanbul ignore next*/
+  var visitor = {
     JSXOpeningElement: function JSXOpeningElement(path, state) {
       var id = t.jSXIdentifier(TRACE_ID);
       var location = path.container.openingElement.loc;
       if (!location) {
-        // the element was generated and doesn't have location information
         return;
       }
 
@@ -25,7 +24,6 @@ exports.default = function ( /*istanbul ignore next*/_ref) {
       for (var i = 0; i < attributes.length; i++) {
         var name = attributes[i].name;
         if (name && name.name === TRACE_ID) {
-          // The __source attibute already exists
           return;
         }
       }
@@ -48,22 +46,7 @@ exports.default = function ( /*istanbul ignore next*/_ref) {
   };
 };
 
-/**
-* This adds {fileName, lineNumber} annotations to React component definitions
-* and to jsx tag literals.
-*
-*
-* == JSX Literals ==
-*
-* <sometag />
-*
-* becomes:
-*
-* var __jsxFileName = 'this/file.js';
-* <sometag __source={{fileName: __jsxFileName, lineNumber: 10}}/>
-*/
-
 var TRACE_ID = "__source";
 var FILE_NAME_VAR = "_jsxFileName";
 
-/*istanbul ignore next*/module.exports = exports["default"];
+module.exports = exports["default"];

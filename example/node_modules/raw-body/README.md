@@ -22,7 +22,7 @@ var getRawBody = require('raw-body')
 
 Options:
 
-- `length` - The length length of the stream.
+- `length` - The length of the stream.
   If the contents of the stream do not add up to this length,
   an `400` error code is returned.
 - `limit` - The byte limit of the body.

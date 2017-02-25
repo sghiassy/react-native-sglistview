@@ -1,3 +1,4 @@
+/* eslint-disable guard-for-in */
 'use strict';
 var repeating = require('repeating');
 
@@ -18,7 +19,7 @@ function getMostUsed(indents) {
 		if (u > maxUsed || u === maxUsed && w > maxWeight) {
 			maxUsed = u;
 			maxWeight = w;
-			result = +n;
+			result = Number(n);
 		}
 	}
 
@@ -92,7 +93,7 @@ module.exports = function (str) {
 			}
 		} else if (current) {
 			// if the last action was an indent, increment the weight
-			current[1] += +isIndent;
+			current[1] += Number(isIndent);
 		}
 	});
 

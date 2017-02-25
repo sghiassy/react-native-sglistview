@@ -6,7 +6,7 @@
  * LICENSE file in the root directory of this source tree. An additional grant
  * of patent rights can be found in the PATENTS file in the same directory.
  *
- * @providesModule canDefineProperty
+ * 
  */
 
 'use strict';
@@ -14,6 +14,7 @@
 var canDefineProperty = false;
 if (process.env.NODE_ENV !== 'production') {
   try {
+    // $FlowFixMe https://github.com/facebook/flow/issues/285
     Object.defineProperty({}, 'x', { get: function () {} });
     canDefineProperty = true;
   } catch (x) {

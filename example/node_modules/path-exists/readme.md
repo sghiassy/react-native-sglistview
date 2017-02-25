@@ -22,37 +22,22 @@ $ npm install --save path-exists
 // foo.js
 var pathExists = require('path-exists');
 
-pathExists.sync('foo.js');
-//=> true
+pathExists('foo.js').then(function (exists) {
+	console.log(exists);
+	//=> true
+});
 ```
 
 
 ## API
 
-### pathExists(path, callback)
+### pathExists(path)
 
-#### path
-
-*Required*  
-Type: `string`
-
-#### callback(error, exists)
-
-*Required*  
-Type: `function`
-
-##### exists
-
-Type: `boolean`
+Returns a promise that resolves to a boolean of whether the path exists.
 
 ### pathExists.sync(path)
 
 Returns a boolean of whether the path exists.
-
-#### path
-
-*Required*  
-Type: `string`
 
 
 ## License

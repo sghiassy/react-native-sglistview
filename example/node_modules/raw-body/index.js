@@ -37,7 +37,7 @@ var iconvEncodingMessageRegExp = /^Encoding not recognized: /
  * @private
  */
 
-function getDecoder(encoding) {
+function getDecoder (encoding) {
   if (!encoding) return null
 
   try {
@@ -62,7 +62,7 @@ function getDecoder(encoding) {
  * @public
  */
 
-function getRawBody(stream, options, callback) {
+function getRawBody (stream, options, callback) {
   var done = callback
   var opts = options || {}
 
@@ -106,8 +106,8 @@ function getRawBody(stream, options, callback) {
     return readStream(stream, encoding, length, limit, done)
   }
 
-  return new Promise(function executor(resolve, reject) {
-    readStream(stream, encoding, length, limit, function onRead(err, buf) {
+  return new Promise(function executor (resolve, reject) {
+    readStream(stream, encoding, length, limit, function onRead (err, buf) {
       if (err) return reject(err)
       resolve(buf)
     })
@@ -121,7 +121,7 @@ function getRawBody(stream, options, callback) {
  * @private
  */
 
-function halt(stream) {
+function halt (stream) {
   // unpipe everything from the stream
   unpipe(stream)
 
@@ -145,7 +145,7 @@ function halt(stream) {
  * @private
  */
 
-function createError(status, message, type, props) {
+function createError (status, message, type, props) {
   var error = new Error()
 
   // capture stack trace
@@ -185,7 +185,7 @@ function createError(status, message, type, props) {
  * @public
  */
 
-function readStream(stream, encoding, length, limit, callback) {
+function readStream (stream, encoding, length, limit, callback) {
   var complete = false
   var sync = true
 
@@ -234,7 +234,7 @@ function readStream(stream, encoding, length, limit, callback) {
   // mark sync section complete
   sync = false
 
-  function done() {
+  function done () {
     var args = new Array(arguments.length)
 
     // copy arguments
@@ -251,7 +251,7 @@ function readStream(stream, encoding, length, limit, callback) {
       invokeCallback()
     }
 
-    function invokeCallback() {
+    function invokeCallback () {
       cleanup()
 
       if (args[0]) {
@@ -263,7 +263,7 @@ function readStream(stream, encoding, length, limit, callback) {
     }
   }
 
-  function onAborted() {
+  function onAborted () {
     if (complete) return
 
     done(createError(400, 'request aborted', 'request.aborted', {
@@ -274,7 +274,7 @@ function readStream(stream, encoding, length, limit, callback) {
     }))
   }
 
-  function onData(chunk) {
+  function onData (chunk) {
     if (complete) return
 
     received += chunk.length
@@ -290,7 +290,7 @@ function readStream(stream, encoding, length, limit, callback) {
     }
   }
 
-  function onEnd(err) {
+  function onEnd (err) {
     if (complete) return
     if (err) return done(err)
 
@@ -304,12 +304,11 @@ function readStream(stream, encoding, length, limit, callback) {
       var string = decoder
         ? buffer + (decoder.end() || '')
         : Buffer.concat(buffer)
-      cleanup()
       done(null, string)
     }
   }
 
-  function cleanup() {
+  function cleanup () {
     buffer = null
 
     stream.removeListener('aborted', onAborted)

@@ -1,5 +1,5 @@
 'use strict';
-var userHome = require('user-home');
+var osHomedir = require('os-homedir');
 var osTmpdir = require('os-tmpdir');
 
-module.exports = userHome || osTmpdir();
+module.exports = osHomedir() || osTmpdir();

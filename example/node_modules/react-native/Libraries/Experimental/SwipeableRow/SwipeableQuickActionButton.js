@@ -31,8 +31,26 @@ const View = require('View');
 
 const {PropTypes} = React;
 
-const SwipeableQuickActionButton = React.createClass({
-  propTypes: {
+import type {ImageSource} from 'ImageSource';
+
+/**
+ * Standard set of quick action buttons that can, if the user chooses, be used
+ * with SwipeableListView. Each button takes an image and text with optional
+ * formatting.
+ */
+class SwipeableQuickActionButton extends React.Component {
+  props: {
+    accessibilityLabel?: string,
+    imageSource: ImageSource | number,
+    imageStyle?: ?View.propTypes.style,
+    onPress?: Function,
+    style?: ?View.propTypes.style,
+    testID?: string,
+    text?: ?(string | Object | Array<string | Object>),
+    textStyle?: ?View.propTypes.style,
+  };
+
+  static propTypes = {
     accessibilityLabel: PropTypes.string,
     imageSource: Image.propTypes.source.isRequired,
     imageStyle: Image.propTypes.style,
@@ -41,9 +59,9 @@ const SwipeableQuickActionButton = React.createClass({
     testID: PropTypes.string,
     text: PropTypes.string,
     textStyle: Text.propTypes.style,
-  },
+  };
 
-  render(): ?ReactElement {
+  render(): ?React.Element<any> {
     if (!this.props.imageSource && !this.props.text) {
       return null;
     }
@@ -65,7 +83,7 @@ const SwipeableQuickActionButton = React.createClass({
         </View>
       </TouchableHighlight>
     );
-  },
-});
+  }
+}
 
 module.exports = SwipeableQuickActionButton;

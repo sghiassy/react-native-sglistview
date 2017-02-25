@@ -9,8 +9,6 @@ var _for2 = _interopRequireDefault(_for);
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
-/* eslint max-len: 0 */
-
 var STATEMENT_OR_BLOCK_KEYS = exports.STATEMENT_OR_BLOCK_KEYS = ["consequent", "body", "alternate"];
 var FLATTENABLE_KEYS = exports.FLATTENABLE_KEYS = ["body", "expressions"];
 var FOR_INIT_KEYS = exports.FOR_INIT_KEYS = ["left", "init"];

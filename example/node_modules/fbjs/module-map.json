@@ -89,6 +89,7 @@
   "removeFromArray": "fbjs/lib/removeFromArray",
   "requestAnimationFrame": "fbjs/lib/requestAnimationFrame",
   "resolveImmediate": "fbjs/lib/resolveImmediate",
+  "setImmediate": "fbjs/lib/setImmediate",
   "shallowEqual": "fbjs/lib/shallowEqual",
   "someObject": "fbjs/lib/someObject",
   "someSet": "fbjs/lib/someSet",

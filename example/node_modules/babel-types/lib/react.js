@@ -37,15 +37,12 @@ function cleanJSXElementLiteralChild(child, args) {
     var isLastLine = _i === lines.length - 1;
     var isLastNonEmptyLine = _i === lastNonEmptyLine;
 
-    // replace rendered whitespace tabs with spaces
     var trimmedLine = line.replace(/\t/g, " ");
 
-    // trim whitespace touching a newline
     if (!isFirstLine) {
       trimmedLine = trimmedLine.replace(/^[ ]+/, "");
     }
 
-    // trim whitespace touching an endline
     if (!isLastLine) {
       trimmedLine = trimmedLine.replace(/[ ]+$/, "");
     }

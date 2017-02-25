@@ -11,11 +11,6 @@ var t = _interopRequireWildcard(_index);
 
 function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } else { var newObj = {}; if (obj != null) { for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) newObj[key] = obj[key]; } } newObj.default = obj; return newObj; } }
 
-/**
- * Takes an array of `types` and flattens them, removing duplicates and
- * returns a `UnionTypeAnnotation` node containg them.
- */
-
 function createUnionTypeAnnotation(types) {
   var flattened = removeTypeDuplicates(types);
 
@@ -26,15 +21,10 @@ function createUnionTypeAnnotation(types) {
   }
 }
 
-/**
- * Dedupe type annotations.
- */
-
 function removeTypeDuplicates(nodes) {
   var generics = {};
   var bases = {};
 
-  // store union type groups to circular references
   var typeGroups = [];
 
   var types = [];
@@ -43,23 +33,19 @@ function removeTypeDuplicates(nodes) {
     var node = nodes[i];
     if (!node) continue;
 
-    // detect duplicates
     if (types.indexOf(node) >= 0) {
       continue;
     }
 
-    // this type matches anything
     if (t.isAnyTypeAnnotation(node)) {
       return [node];
     }
 
-    //
     if (t.isFlowBaseAnnotation(node)) {
       bases[node.type] = node;
       continue;
     }
 
-    //
     if (t.isUnionTypeAnnotation(node)) {
       if (typeGroups.indexOf(node.types) < 0) {
         nodes = nodes.concat(node.types);
@@ -68,7 +54,6 @@ function removeTypeDuplicates(nodes) {
       continue;
     }
 
-    // find a matching generic type and merge and deduplicate the type parameters
     if (t.isGenericTypeAnnotation(node)) {
       var name = node.id.name;
 
@@ -91,22 +76,16 @@ function removeTypeDuplicates(nodes) {
     types.push(node);
   }
 
-  // add back in bases
   for (var type in bases) {
     types.push(bases[type]);
   }
 
-  // add back in generics
   for (var _name in generics) {
     types.push(generics[_name]);
   }
 
   return types;
 }
-
-/**
- * Create a type anotation based on typeof expression.
- */
 
 function createTypeAnnotationBasedOnTypeof(type) {
   if (type === "string") {

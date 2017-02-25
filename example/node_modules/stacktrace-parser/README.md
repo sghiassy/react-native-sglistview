@@ -27,6 +27,7 @@ If you want to contrib, then do you thing, write tests, run `grunt test` ensure 
 
 - [Georg Tavonius](https://github.com/calamari)
 - [James Ide](https://github.com/ide)
+- [Alexander Kotliarskyi](https://github.com/frantic)
 
 ## LICENSE
 

@@ -179,6 +179,13 @@ describe('StackTraceParser', function() {
             methodName: 'wrapped',
             lineNumber: 51,
             column: 30 } ]
+      },
+      {
+        from: "global code@stack_traces/test:83:55",
+        to: [ { file: 'stack_traces/test',
+            methodName: 'global code',
+            lineNumber: 83,
+            column: 55 } ]
       }
     ],
     'Internet Explorer': [

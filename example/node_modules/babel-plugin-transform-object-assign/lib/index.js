@@ -1,11 +1,11 @@
-/*istanbul ignore next*/"use strict";
+"use strict";
 
 exports.__esModule = true;
 
 exports.default = function () {
   return {
     visitor: {
-      CallExpression: function /*istanbul ignore next*/CallExpression(path, file) {
+      CallExpression: function CallExpression(path, file) {
         if (path.get("callee").matchesPattern("Object.assign")) {
           path.node.callee = file.addHelper("extends");
         }
@@ -14,4 +14,4 @@ exports.default = function () {
   };
 };
 
-/*istanbul ignore next*/module.exports = exports["default"];
+module.exports = exports["default"];

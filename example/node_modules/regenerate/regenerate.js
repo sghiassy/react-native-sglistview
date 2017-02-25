@@ -1,4 +1,4 @@
-/*! https://mths.be/regenerate v1.3.1 by @mathias | MIT license */
+/*! https://mths.be/regenerate v1.3.2 by @mathias | MIT license */
 ;(function(root) {
 
 	// Detect free variables `exports`.
@@ -893,14 +893,10 @@
 		var end;
 		var startHigh;
 		var startLow;
-		var prevStartHigh = 0;
-		var prevEndHigh = 0;
-		var tmpLow = [];
 		var endHigh;
 		var endLow;
 		var surrogateMappings = [];
 		var length = data.length;
-		var dataHigh = [];
 		while (index < length) {
 			start = data[index];
 			end = data[index + 1] - 1;
@@ -958,9 +954,6 @@
 				]);
 			}
 
-			prevStartHigh = startHigh;
-			prevEndHigh = endHigh;
-
 			index += 2;
 		}
 
@@ -1001,7 +994,6 @@
 		var loneLowSurrogates = parts.loneLowSurrogates;
 		var bmp = parts.bmp;
 		var astral = parts.astral;
-		var hasAstral = !dataIsEmpty(parts.astral);
 		var hasLoneHighSurrogates = !dataIsEmpty(loneHighSurrogates);
 		var hasLoneLowSurrogates = !dataIsEmpty(loneLowSurrogates);
 
@@ -1060,7 +1052,7 @@
 		return (new regenerate).add(value);
 	};
 
-	regenerate.version = '1.3.1';
+	regenerate.version = '1.3.2';
 
 	var proto = regenerate.prototype;
 	extend(proto, {

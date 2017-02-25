@@ -6,6 +6,7 @@ var assert = require('assert');
 var common = require('./common');
 var watchman = require('fb-watchman');
 var EventEmitter = require('events').EventEmitter;
+var RecrawlWarning = require('./utils/recrawl-warning-dedupe');
 
 /**
  * Constants
@@ -301,6 +302,9 @@ function handleError(self, error) {
 
 function handleWarning(resp) {
   if ('warning' in resp) {
+    if (RecrawlWarning.isRecrawlWarningDupe(resp.warning)) {
+      return true;
+    }
     console.warn(resp.warning);
     return true;
   } else {

@@ -9,18 +9,17 @@
  */
 
 #import "RCTImagePickerManager.h"
-#import "RCTImageStoreManager.h"
-
-#import "RCTConvert.h"
-#import "RCTRootView.h"
-#import "RCTLog.h"
-#import "RCTUtils.h"
-
-#import <UIKit/UIKit.h>
 
 #import <MobileCoreServices/UTCoreTypes.h>
+#import <UIKit/UIKit.h>
 
-@interface RCTImagePickerManager ()<UIImagePickerControllerDelegate, UINavigationControllerDelegate>
+#import <React/RCTConvert.h>
+#import <React/RCTImageStoreManager.h>
+#import <React/RCTLog.h>
+#import <React/RCTRootView.h>
+#import <React/RCTUtils.h>
+
+@interface RCTImagePickerManager () <UIImagePickerControllerDelegate, UINavigationControllerDelegate>
 
 @end
 
@@ -150,7 +149,7 @@ didFinishPickingMediaWithInfo:(NSDictionary<NSString *, id> *)info
   [_pickerCallbacks addObject:callback];
   [_pickerCancelCallbacks addObject:cancelCallback];
 
-  UIViewController *rootViewController = RCTKeyWindow().rootViewController;
+  UIViewController *rootViewController = RCTPresentedViewController();
   [rootViewController presentViewController:imagePicker animated:YES completion:nil];
 }
 
@@ -164,7 +163,7 @@ didFinishPickingMediaWithInfo:(NSDictionary<NSString *, id> *)info
   [_pickerCallbacks removeObjectAtIndex:index];
   [_pickerCancelCallbacks removeObjectAtIndex:index];
 
-  UIViewController *rootViewController = RCTKeyWindow().rootViewController;
+  UIViewController *rootViewController = RCTPresentedViewController();
   [rootViewController dismissViewControllerAnimated:YES completion:nil];
 
   if (args) {

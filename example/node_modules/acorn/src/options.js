@@ -1,16 +1,18 @@
 import {has, isArray} from "./util"
-import {SourceLocation} from "./location"
+import {SourceLocation} from "./locutil"
 
 // A second optional argument can be given to further configure
 // the parser process. These options are recognized:
 
 export const defaultOptions = {
   // `ecmaVersion` indicates the ECMAScript version to parse. Must
-  // be either 3, or 5, or 6. This influences support for strict
-  // mode, the set of reserved words, support for getters and
-  // setters and other features.
-  ecmaVersion: 5,
-  // Source type ("script" or "module") for different semantics
+  // be either 3, 5, 6 (2015), 7 (2016), or 8 (2017). This influences support
+  // for strict mode, the set of reserved words, and support for
+  // new syntax features. The default is 7.
+  ecmaVersion: 7,
+  // `sourceType` indicates the mode the code should be parsed in.
+  // Can be either `"script"` or `"module"`. This influences global
+  // strict mode and parsing of `import` and `export` declarations.
   sourceType: "script",
   // `onInsertedSemicolon` can be a callback that will be called
   // when a semicolon is automatically inserted. It will be passed
@@ -21,11 +23,11 @@ export const defaultOptions = {
   // `onTrailingComma` is similar to `onInsertedSemicolon`, but for
   // trailing commas.
   onTrailingComma: null,
-  // By default, reserved words are not enforced. Disable
-  // `allowReserved` to enforce them. When this option has the
-  // value "never", reserved words and keywords can also not be
-  // used as property names.
-  allowReserved: true,
+  // By default, reserved words are only enforced if ecmaVersion >= 5.
+  // Set `allowReserved` to a boolean value to explicitly turn this on
+  // an off. When this option has the value "never", reserved words
+  // and keywords can also not be used as property names.
+  allowReserved: null,
   // When enabled, a return at the top level is not considered an
   // error.
   allowReturnOutsideFunction: false,
@@ -42,9 +44,9 @@ export const defaultOptions = {
   locations: false,
   // A function can be passed as `onToken` option, which will
   // cause Acorn to call that function with object in the same
-  // format as tokenize() returns. Note that you are not
-  // allowed to call the parser from the callback—that will
-  // corrupt its internal state.
+  // format as tokens returned from `tokenizer().getToken()`. Note
+  // that you are not allowed to call the parser from the
+  // callback—that will corrupt its internal state.
   onToken: null,
   // A function can be passed as `onComment` option, which will
   // cause Acorn to call that function with `(block, text, start,
@@ -88,8 +90,15 @@ export const defaultOptions = {
 
 export function getOptions(opts) {
   let options = {}
+
   for (let opt in defaultOptions)
     options[opt] = opts && has(opts, opt) ? opts[opt] : defaultOptions[opt]
+
+  if (options.ecmaVersion >= 2015)
+    options.ecmaVersion -= 2009
+
+  if (options.allowReserved == null)
+    options.allowReserved = options.ecmaVersion < 5
 
   if (isArray(options.onToken)) {
     let tokens = options.onToken

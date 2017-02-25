@@ -1,6 +1,6 @@
 'use strict';
 
-var jsTokens = require('js-tokens');
+var jsTokens = require('js-tokens').default;
 
 var processEnvRe = /\bprocess\.env\.[_$a-zA-Z][$\w]+\b/;
 var spaceOrCommentRe = /^(?:\s|\/[/*])/;

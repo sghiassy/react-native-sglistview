@@ -1,13 +1,13 @@
-/*istanbul ignore next*/"use strict";
+"use strict";
 
 exports.__esModule = true;
 
 exports.default = function () {
-  return { /*istanbul ignore next*/
+  return {
     manipulateOptions: function manipulateOptions(opts, parserOpts) {
       parserOpts.plugins.push("asyncFunctions");
     }
   };
 };
 
-/*istanbul ignore next*/module.exports = exports["default"];
+module.exports = exports["default"];

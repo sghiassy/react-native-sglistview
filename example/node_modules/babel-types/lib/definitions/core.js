@@ -23,7 +23,7 @@ function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj;
   },
   visitor: ["elements"],
   aliases: ["Expression"]
-}); /* eslint max-len: 0 */
+});
 
 (0, _index3.default)("AssignmentExpression", {
   fields: {
@@ -292,9 +292,7 @@ function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj;
   fields: {
     name: {
       validate: function validate(node, key, val) {
-        if (!t.isValidIdentifier(val)) {
-          // todo
-        }
+        if (!t.isValidIdentifier(val)) {}
       }
     },
     decorators: {
@@ -597,7 +595,6 @@ function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj;
   }
 });
 
-// todo: at least handler or finalizer should be set to be valid
 (0, _index3.default)("TryStatement", {
   visitor: ["block", "handler", "finalizer"],
   aliases: ["Statement"],

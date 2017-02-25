@@ -1,6 +1,6 @@
 # for-in [![NPM version](https://img.shields.io/npm/v/for-in.svg?style=flat)](https://www.npmjs.com/package/for-in) [![NPM downloads](https://img.shields.io/npm/dm/for-in.svg?style=flat)](https://npmjs.org/package/for-in) [![Build Status](https://img.shields.io/travis/jonschlinkert/for-in.svg?style=flat)](https://travis-ci.org/jonschlinkert/for-in)
 
-> Iterate over the own and inherited enumerable properties of an objecte, and return an object with properties that evaluate to true from the callback. Exit early by returning `false`. JavaScript/Node.js
+> Iterate over the own and inherited enumerable properties of an object, and return an object with properties that evaluate to true from the callback. Exit early by returning `false`. JavaScript/Node.js
 
 ## Install
 

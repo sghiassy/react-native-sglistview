@@ -1,4 +1,4 @@
-/*istanbul ignore next*/"use strict";
+"use strict";
 
 exports.__esModule = true;
 
@@ -6,12 +6,12 @@ var _getIterator2 = require("babel-runtime/core-js/get-iterator");
 
 var _getIterator3 = _interopRequireDefault(_getIterator2);
 
-exports.default = function ( /*istanbul ignore next*/_ref) {
-  /*istanbul ignore next*/var t = _ref.types;
+exports.default = function (_ref) {
+  var t = _ref.types;
 
   var JSX_ANNOTATION_REGEX = /\*?\s*@jsx\s+([^\s]+)/;
 
-  var visitor = require("babel-helper-builder-react-jsx")({ /*istanbul ignore next*/
+  var visitor = (0, _babelHelperBuilderReactJsx2.default)({
     pre: function pre(state) {
       var tagName = state.tagName;
       var args = state.args;
@@ -21,18 +21,17 @@ exports.default = function ( /*istanbul ignore next*/_ref) {
         args.push(state.tagExpr);
       }
     },
-    /*istanbul ignore next*/post: function post(state, pass) {
+    post: function post(state, pass) {
       state.callee = pass.get("jsxIdentifier")();
     }
   });
 
   visitor.Program = function (path, state) {
-    /*istanbul ignore next*/var file = state.file;
+    var file = state.file;
 
     var id = state.opts.pragma || "React.createElement";
 
-    for ( /*istanbul ignore next*/var _iterator = file.ast.comments, _isArray = Array.isArray(_iterator), _i = 0, _iterator = _isArray ? _iterator : (0, _getIterator3.default)(_iterator);;) {
-      /*istanbul ignore next*/
+    for (var _iterator = file.ast.comments, _isArray = Array.isArray(_iterator), _i = 0, _iterator = _isArray ? _iterator : (0, _getIterator3.default)(_iterator);;) {
       var _ref2;
 
       if (_isArray) {
@@ -57,22 +56,29 @@ exports.default = function ( /*istanbul ignore next*/_ref) {
       }
     }
 
-    state.set("jsxIdentifier", function () /*istanbul ignore next*/{
-      return id.split(".").map(function (name) /*istanbul ignore next*/{
+    state.set("jsxIdentifier", function () {
+      return id.split(".").map(function (name) {
         return t.identifier(name);
-      }).reduce(function (object, property) /*istanbul ignore next*/{
+      }).reduce(function (object, property) {
         return t.memberExpression(object, property);
       });
     });
   };
 
   return {
-    inherits: require("babel-plugin-syntax-jsx"),
+    inherits: _babelPluginSyntaxJsx2.default,
     visitor: visitor
   };
 };
 
-/*istanbul ignore next*/
+var _babelPluginSyntaxJsx = require("babel-plugin-syntax-jsx");
+
+var _babelPluginSyntaxJsx2 = _interopRequireDefault(_babelPluginSyntaxJsx);
+
+var _babelHelperBuilderReactJsx = require("babel-helper-builder-react-jsx");
+
+var _babelHelperBuilderReactJsx2 = _interopRequireDefault(_babelHelperBuilderReactJsx);
+
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
-module.exports = exports["default"]; /* eslint max-len: 0 */
+module.exports = exports["default"];

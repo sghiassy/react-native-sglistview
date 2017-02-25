@@ -1,5 +1,6 @@
 'use strict';
 var stringWidth = require('string-width');
+var stripAnsi = require('strip-ansi');
 
 var ESCAPES = [
 	'\u001b',
@@ -52,7 +53,7 @@ function wordLengths(str) {
 // ansi escape codes do not count towards length.
 function wrapWord(rows, word, cols) {
 	var insideEscape = false;
-	var visible = rows[rows.length - 1].length;
+	var visible = stripAnsi(rows[rows.length - 1]).length;
 
 	for (var i = 0; i < word.length; i++) {
 		var x = word[i];
@@ -122,6 +123,11 @@ function exec(str, cols, opts) {
 		}
 
 		if (rowLength + lengths[i] > cols && rowLength > 0) {
+			if (options.wordWrap === false && rowLength < cols) {
+				wrapWord(rows, word, cols);
+				continue;
+			}
+
 			rows.push('');
 		}
 

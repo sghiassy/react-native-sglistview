@@ -1,18 +1,17 @@
-/*istanbul ignore next*/"use strict";
+"use strict";
 
 exports.__esModule = true;
 
 exports.default = function (path) {
-  /*istanbul ignore next*/var scope = arguments.length <= 1 || arguments[1] === undefined ? path.scope : arguments[1];
-  /*istanbul ignore next*/var node = path.node;
+  var scope = arguments.length > 1 && arguments[1] !== undefined ? arguments[1] : path.scope;
+  var node = path.node;
 
   var container = t.functionExpression(null, [], node.body, node.generator, node.async);
 
   var callee = container;
   var args = [];
 
-  // todo: only hoist if necessary
-  /*istanbul ignore next*/(0, _babelHelperHoistVariables2.default)(path, function (id) /*istanbul ignore next*/{
+  (0, _babelHelperHoistVariables2.default)(path, function (id) {
     return scope.push({ id: id });
   });
 
@@ -43,22 +42,19 @@ exports.default = function (path) {
   return t.returnStatement(call);
 };
 
-var /*istanbul ignore next*/_babelHelperHoistVariables = require("babel-helper-hoist-variables");
+var _babelHelperHoistVariables = require("babel-helper-hoist-variables");
 
-/*istanbul ignore next*/
 var _babelHelperHoistVariables2 = _interopRequireDefault(_babelHelperHoistVariables);
 
-var /*istanbul ignore next*/_babelTypes = require("babel-types");
+var _babelTypes = require("babel-types");
 
-/*istanbul ignore next*/
 var t = _interopRequireWildcard(_babelTypes);
 
-/*istanbul ignore next*/
 function _interopRequireWildcard(obj) { if (obj && obj.__esModule) { return obj; } else { var newObj = {}; if (obj != null) { for (var key in obj) { if (Object.prototype.hasOwnProperty.call(obj, key)) newObj[key] = obj[key]; } } newObj.default = obj; return newObj; } }
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
-var visitor = { /*istanbul ignore next*/
+var visitor = {
   enter: function enter(path, state) {
     if (path.isThisExpression()) {
       state.foundThis = true;
@@ -68,9 +64,9 @@ var visitor = { /*istanbul ignore next*/
       state.foundArguments = true;
     }
   },
-  /*istanbul ignore next*/Function: function Function(path) {
+  Function: function Function(path) {
     path.skip();
   }
 };
 
-/*istanbul ignore next*/module.exports = exports["default"];
+module.exports = exports["default"];

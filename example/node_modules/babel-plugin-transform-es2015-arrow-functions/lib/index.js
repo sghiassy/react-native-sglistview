@@ -1,15 +1,15 @@
-/*istanbul ignore next*/"use strict";
+"use strict";
 
 exports.__esModule = true;
 
-exports.default = function ( /*istanbul ignore next*/_ref) {
-  /*istanbul ignore next*/var t = _ref.types;
+exports.default = function (_ref) {
+  var t = _ref.types;
 
   return {
-    visitor: { /*istanbul ignore next*/
+    visitor: {
       ArrowFunctionExpression: function ArrowFunctionExpression(path, state) {
         if (state.opts.spec) {
-          /*istanbul ignore next*/var node = path.node;
+          var node = path.node;
 
           if (node.shadow) return;
 
@@ -19,7 +19,6 @@ exports.default = function ( /*istanbul ignore next*/_ref) {
           var boundThis = t.thisExpression();
           boundThis._forceShadow = path;
 
-          // make sure that arrow function won't be instantiated
           path.ensureBlock();
           path.get("body").unshiftContainer("body", t.expressionStatement(t.callExpression(state.addHelper("newArrowCheck"), [t.thisExpression(), boundThis])));
 
@@ -32,4 +31,4 @@ exports.default = function ( /*istanbul ignore next*/_ref) {
   };
 };
 
-/*istanbul ignore next*/module.exports = exports["default"];
+module.exports = exports["default"];

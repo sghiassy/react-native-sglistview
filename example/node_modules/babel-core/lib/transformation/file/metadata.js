@@ -94,8 +94,6 @@ function ExportDeclaration(path, file) {
   var source = node.source ? node.source.value : null;
   var exports = file.metadata.modules.exports;
 
-  // export function foo() {}
-  // export let foo = "bar";
   var declar = path.get("declaration");
   if (declar.isStatement()) {
     var bindings = declar.getBindingIdentifiers();
@@ -128,7 +126,6 @@ function ExportDeclaration(path, file) {
       var exported = specifier.exported.name;
       exports.exported.push(exported);
 
-      // export foo from "bar";
       if (t.isExportDefaultSpecifier(specifier)) {
         exports.specifiers.push({
           kind: "external",
@@ -138,7 +135,6 @@ function ExportDeclaration(path, file) {
         });
       }
 
-      // export * as foo from "bar";
       if (t.isExportNamespaceSpecifier(specifier)) {
         exports.specifiers.push({
           kind: "external-namespace",
@@ -150,8 +146,6 @@ function ExportDeclaration(path, file) {
       var local = specifier.local;
       if (!local) continue;
 
-      // export { foo } from "bar";
-      // export { foo as bar } from "bar";
       if (source) {
         exports.specifiers.push({
           kind: "external",
@@ -161,8 +155,6 @@ function ExportDeclaration(path, file) {
         });
       }
 
-      // export { foo };
-      // export { foo as bar };
       if (!source) {
         exports.specifiers.push({
           kind: "local",
@@ -173,7 +165,6 @@ function ExportDeclaration(path, file) {
     }
   }
 
-  // export * from "bar";
   if (path.isExportAllDeclaration()) {
     exports.specifiers.push({
       kind: "external-all",

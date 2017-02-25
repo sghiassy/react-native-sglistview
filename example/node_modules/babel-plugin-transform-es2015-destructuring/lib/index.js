@@ -1,4 +1,4 @@
-/*istanbul ignore next*/"use strict";
+"use strict";
 
 exports.__esModule = true;
 
@@ -10,17 +10,12 @@ var _getIterator2 = require("babel-runtime/core-js/get-iterator");
 
 var _getIterator3 = _interopRequireDefault(_getIterator2);
 
-exports.default = function ( /*istanbul ignore next*/_ref) {
-  /*istanbul ignore next*/var t = _ref.types;
+exports.default = function (_ref) {
+  var t = _ref.types;
 
-
-  /**
-   * Test if a VariableDeclaration's declarations contains any Patterns.
-   */
 
   function variableDeclarationHasPattern(node) {
-    for ( /*istanbul ignore next*/var _iterator = node.declarations, _isArray = Array.isArray(_iterator), _i = 0, _iterator = _isArray ? _iterator : (0, _getIterator3.default)(_iterator);;) {
-      /*istanbul ignore next*/
+    for (var _iterator = node.declarations, _isArray = Array.isArray(_iterator), _i = 0, _iterator = _isArray ? _iterator : (0, _getIterator3.default)(_iterator);;) {
       var _ref2;
 
       if (_isArray) {
@@ -41,13 +36,8 @@ exports.default = function ( /*istanbul ignore next*/_ref) {
     return false;
   }
 
-  /**
-   * Test if an ArrayPattern's elements contain any RestElements.
-   */
-
   function hasRest(pattern) {
-    for ( /*istanbul ignore next*/var _iterator2 = pattern.elements, _isArray2 = Array.isArray(_iterator2), _i2 = 0, _iterator2 = _isArray2 ? _iterator2 : (0, _getIterator3.default)(_iterator2);;) {
-      /*istanbul ignore next*/
+    for (var _iterator2 = pattern.elements, _isArray2 = Array.isArray(_iterator2), _i2 = 0, _iterator2 = _isArray2 ? _iterator2 : (0, _getIterator3.default)(_iterator2);;) {
       var _ref3;
 
       if (_isArray2) {
@@ -68,7 +58,7 @@ exports.default = function ( /*istanbul ignore next*/_ref) {
     return false;
   }
 
-  var arrayUnpackVisitor = { /*istanbul ignore next*/
+  var arrayUnpackVisitor = {
     ReferencedIdentifier: function ReferencedIdentifier(path, state) {
       if (state.bindings[path.node.name]) {
         state.deopt = true;
@@ -77,10 +67,9 @@ exports.default = function ( /*istanbul ignore next*/_ref) {
     }
   };
 
-  /*istanbul ignore next*/
   var DestructuringTransformer = function () {
-    function /*istanbul ignore next*/DestructuringTransformer(opts) {
-      /*istanbul ignore next*/(0, _classCallCheck3.default)(this, DestructuringTransformer);
+    function DestructuringTransformer(opts) {
+      (0, _classCallCheck3.default)(this, DestructuringTransformer);
 
       this.blockHoist = opts.blockHoist;
       this.operator = opts.operator;
@@ -95,7 +84,7 @@ exports.default = function ( /*istanbul ignore next*/_ref) {
       var op = this.operator;
       if (t.isMemberExpression(id)) op = "=";
 
-      var node = /*istanbul ignore next*/void 0;
+      var node = void 0;
 
       if (op) {
         node = t.expressionStatement(t.assignmentExpression(op, id, init));
@@ -135,16 +124,12 @@ exports.default = function ( /*istanbul ignore next*/_ref) {
     };
 
     DestructuringTransformer.prototype.pushAssignmentPattern = function pushAssignmentPattern(pattern, valueRef) {
-      // we need to assign the current value of the assignment to avoid evaluating
-      // it more than once
 
       var tempValueRef = this.scope.generateUidIdentifierBasedOnNode(valueRef);
 
       var declar = t.variableDeclaration("var", [t.variableDeclarator(tempValueRef, valueRef)]);
       declar._blockHoist = this.blockHoist;
       this.nodes.push(declar);
-
-      //
 
       var tempConditional = t.conditionalExpression(t.binaryExpression("===", tempValueRef, t.identifier("undefined")), pattern.right, tempValueRef);
 
@@ -161,18 +146,14 @@ exports.default = function ( /*istanbul ignore next*/_ref) {
     };
 
     DestructuringTransformer.prototype.pushObjectRest = function pushObjectRest(pattern, objRef, spreadProp, spreadPropIndex) {
-      // get all the keys that appear in this object before the current spread
 
       var keys = [];
 
       for (var i = 0; i < pattern.properties.length; i++) {
         var prop = pattern.properties[i];
 
-        // we've exceeded the index of the spread property to all properties to the
-        // right need to be ignored
         if (i >= spreadPropIndex) break;
 
-        // ignore other spread properties
         if (t.isRestProperty(prop)) continue;
 
         var key = prop.key;
@@ -181,8 +162,6 @@ exports.default = function ( /*istanbul ignore next*/_ref) {
       }
 
       keys = t.arrayExpression(keys);
-
-      //
 
       var value = t.callExpression(this.file.addHelper("objectWithoutProperties"), [objRef, keys]);
       this.nodes.push(this.buildVariableAssignment(spreadProp.argument, value));
@@ -202,23 +181,16 @@ exports.default = function ( /*istanbul ignore next*/_ref) {
     };
 
     DestructuringTransformer.prototype.pushObjectPattern = function pushObjectPattern(pattern, objRef) {
-      // https://github.com/babel/babel/issues/681
 
       if (!pattern.properties.length) {
         this.nodes.push(t.expressionStatement(t.callExpression(this.file.addHelper("objectDestructuringEmpty"), [objRef])));
       }
-
-      // if we have more than one properties in this pattern and the objectRef is a
-      // member expression then we need to assign it to a temporary variable so it's
-      // only evaluated once
 
       if (pattern.properties.length > 1 && !this.scope.isStatic(objRef)) {
         var temp = this.scope.generateUidIdentifierBasedOnNode(objRef);
         this.nodes.push(this.buildVariableDeclaration(temp, objRef));
         objRef = temp;
       }
-
-      //
 
       for (var i = 0; i < pattern.properties.length; i++) {
         var prop = pattern.properties[i];
@@ -231,16 +203,12 @@ exports.default = function ( /*istanbul ignore next*/_ref) {
     };
 
     DestructuringTransformer.prototype.canUnpackArrayPattern = function canUnpackArrayPattern(pattern, arr) {
-      // not an array so there's no way we can deal with this
       if (!t.isArrayExpression(arr)) return false;
 
-      // pattern has less elements than the array and doesn't have a rest so some
-      // elements wont be evaluated
       if (pattern.elements.length > arr.elements.length) return;
       if (pattern.elements.length < arr.elements.length && !hasRest(pattern)) return false;
 
-      for ( /*istanbul ignore next*/var _iterator3 = pattern.elements, _isArray3 = Array.isArray(_iterator3), _i3 = 0, _iterator3 = _isArray3 ? _iterator3 : (0, _getIterator3.default)(_iterator3);;) {
-        /*istanbul ignore next*/
+      for (var _iterator3 = pattern.elements, _isArray3 = Array.isArray(_iterator3), _i3 = 0, _iterator3 = _isArray3 ? _iterator3 : (0, _getIterator3.default)(_iterator3);;) {
         var _ref4;
 
         if (_isArray3) {
@@ -254,15 +222,12 @@ exports.default = function ( /*istanbul ignore next*/_ref) {
 
         var elem = _ref4;
 
-        // deopt on holes
         if (!elem) return false;
 
-        // deopt on member expressions as they may be included in the RHS
         if (t.isMemberExpression(elem)) return false;
       }
 
-      for ( /*istanbul ignore next*/var _iterator4 = arr.elements, _isArray4 = Array.isArray(_iterator4), _i4 = 0, _iterator4 = _isArray4 ? _iterator4 : (0, _getIterator3.default)(_iterator4);;) {
-        /*istanbul ignore next*/
+      for (var _iterator4 = arr.elements, _isArray4 = Array.isArray(_iterator4), _i4 = 0, _iterator4 = _isArray4 ? _iterator4 : (0, _getIterator3.default)(_iterator4);;) {
         var _ref5;
 
         if (_isArray4) {
@@ -276,11 +241,13 @@ exports.default = function ( /*istanbul ignore next*/_ref) {
 
         var _elem = _ref5;
 
-        // deopt on spread elements
         if (t.isSpreadElement(_elem)) return false;
+
+        if (t.isCallExpression(_elem)) return false;
+
+        if (t.isMemberExpression(_elem)) return false;
       }
 
-      // deopt on reference to left side identifiers
       var bindings = t.getBindingIdentifiers(pattern);
       var state = { deopt: false, bindings: bindings };
       this.scope.traverse(arr, arrayUnpackVisitor, state);
@@ -301,31 +268,15 @@ exports.default = function ( /*istanbul ignore next*/_ref) {
     DestructuringTransformer.prototype.pushArrayPattern = function pushArrayPattern(pattern, arrayRef) {
       if (!pattern.elements) return;
 
-      // optimise basic array destructuring of an array expression
-      //
-      // we can't do this to a pattern of unequal size to it's right hand
-      // array expression as then there will be values that wont be evaluated
-      //
-      // eg: let [a, b] = [1, 2];
-
       if (this.canUnpackArrayPattern(pattern, arrayRef)) {
         return this.pushUnpackedArrayPattern(pattern, arrayRef);
       }
 
-      // if we have a rest then we need all the elements so don't tell
-      // `scope.toArray` to only get a certain amount
-
       var count = !hasRest(pattern) && pattern.elements.length;
-
-      // so we need to ensure that the `arrayRef` is an array, `scope.toArray` will
-      // return a locally bound identifier if it's been inferred to be an array,
-      // otherwise it'll be a call to a helper that will ensure it's one
 
       var toArray = this.toArray(arrayRef, count);
 
       if (t.isIdentifier(toArray)) {
-        // we've been given an identifier so it must have been inferred to be an
-        // array
         arrayRef = toArray;
       } else {
         arrayRef = this.scope.generateUidIdentifierBasedOnNode(arrayRef);
@@ -333,25 +284,17 @@ exports.default = function ( /*istanbul ignore next*/_ref) {
         this.nodes.push(this.buildVariableDeclaration(arrayRef, toArray));
       }
 
-      //
-
       for (var i = 0; i < pattern.elements.length; i++) {
         var elem = pattern.elements[i];
 
-        // hole
         if (!elem) continue;
 
-        var elemRef = /*istanbul ignore next*/void 0;
+        var elemRef = void 0;
 
         if (t.isRestElement(elem)) {
           elemRef = this.toArray(arrayRef);
+          elemRef = t.callExpression(t.memberExpression(elemRef, t.identifier("slice")), [t.numericLiteral(i)]);
 
-          if (i > 0) {
-            elemRef = t.callExpression(t.memberExpression(elemRef, t.identifier("slice")), [t.numericLiteral(i)]);
-          }
-
-          // set the element to the rest element argument since we've dealt with it
-          // being a rest already
           elem = elem.argument;
         } else {
           elemRef = t.memberExpression(arrayRef, t.numericLiteral(i), true);
@@ -362,8 +305,6 @@ exports.default = function ( /*istanbul ignore next*/_ref) {
     };
 
     DestructuringTransformer.prototype.init = function init(pattern, ref) {
-      // trying to destructure a value that we can't evaluate more than once so we
-      // need to save it to a variable
 
       if (!t.isArrayExpression(ref) && !t.isMemberExpression(ref)) {
         var memo = this.scope.maybeGenerateMemoised(ref, true);
@@ -372,8 +313,6 @@ exports.default = function ( /*istanbul ignore next*/_ref) {
           ref = memo;
         }
       }
-
-      //
 
       this.push(pattern, ref);
 
@@ -384,7 +323,7 @@ exports.default = function ( /*istanbul ignore next*/_ref) {
   }();
 
   return {
-    visitor: { /*istanbul ignore next*/
+    visitor: {
       ExportNamedDeclaration: function ExportNamedDeclaration(path) {
         var declaration = path.get("declaration");
         if (!declaration.isVariableDeclaration()) return;
@@ -397,20 +336,16 @@ exports.default = function ( /*istanbul ignore next*/_ref) {
           specifiers.push(t.exportSpecifier(id, id));
         }
 
-        // Split the declaration and export list into two declarations so that the variable
-        // declaration can be split up later without needing to worry about not being a
-        // top-level statement.
         path.replaceWith(declaration.node);
         path.insertAfter(t.exportNamedDeclaration(null, specifiers));
       },
-      /*istanbul ignore next*/ForXStatement: function ForXStatement(path, file) {
-        /*istanbul ignore next*/var node = path.node;
-        /*istanbul ignore next*/var scope = path.scope;
+      ForXStatement: function ForXStatement(path, file) {
+        var node = path.node,
+            scope = path.scope;
 
         var left = node.left;
 
         if (t.isPattern(left)) {
-          // for ({ length: k } in { abc: 3 });
 
           var temp = scope.generateUidIdentifier("ref");
 
@@ -447,9 +382,9 @@ exports.default = function ( /*istanbul ignore next*/_ref) {
         var block = node.body;
         block.body = nodes.concat(block.body);
       },
-      /*istanbul ignore next*/CatchClause: function CatchClause(_ref6, file) {
-        /*istanbul ignore next*/var node = _ref6.node;
-        /*istanbul ignore next*/var scope = _ref6.scope;
+      CatchClause: function CatchClause(_ref6, file) {
+        var node = _ref6.node,
+            scope = _ref6.scope;
 
         var pattern = node.param;
         if (!t.isPattern(pattern)) return;
@@ -469,9 +404,9 @@ exports.default = function ( /*istanbul ignore next*/_ref) {
 
         node.body.body = nodes.concat(node.body.body);
       },
-      /*istanbul ignore next*/AssignmentExpression: function AssignmentExpression(path, file) {
-        /*istanbul ignore next*/var node = path.node;
-        /*istanbul ignore next*/var scope = path.scope;
+      AssignmentExpression: function AssignmentExpression(path, file) {
+        var node = path.node,
+            scope = path.scope;
 
         if (!t.isPattern(node.left)) return;
 
@@ -484,7 +419,7 @@ exports.default = function ( /*istanbul ignore next*/_ref) {
           nodes: nodes
         });
 
-        var ref = /*istanbul ignore next*/void 0;
+        var ref = void 0;
         if (path.isCompletionRecord() || !path.parentPath.isExpressionStatement()) {
           ref = scope.generateUidIdentifierBasedOnNode(node.right, "ref");
 
@@ -503,17 +438,17 @@ exports.default = function ( /*istanbul ignore next*/_ref) {
 
         path.replaceWithMultiple(nodes);
       },
-      /*istanbul ignore next*/VariableDeclaration: function VariableDeclaration(path, file) {
-        /*istanbul ignore next*/var node = path.node;
-        /*istanbul ignore next*/var scope = path.scope;
-        /*istanbul ignore next*/var parent = path.parent;
+      VariableDeclaration: function VariableDeclaration(path, file) {
+        var node = path.node,
+            scope = path.scope,
+            parent = path.parent;
 
         if (t.isForXStatement(parent)) return;
-        if (!parent || !path.container) return; // i don't know why this is necessary - TODO
+        if (!parent || !path.container) return;
         if (!variableDeclarationHasPattern(node)) return;
 
         var nodes = [];
-        var declar = /*istanbul ignore next*/void 0;
+        var declar = void 0;
 
         for (var i = 0; i < node.declarations.length; i++) {
           declar = node.declarations[i];
@@ -533,8 +468,6 @@ exports.default = function ( /*istanbul ignore next*/_ref) {
             destructuring.init(pattern, patternId);
 
             if (+i !== node.declarations.length - 1) {
-              // we aren't the last declarator so let's just make the
-              // last transformed node inherit from us
               t.inherits(nodes[nodes.length - 1], declar);
             }
           } else {
@@ -542,13 +475,77 @@ exports.default = function ( /*istanbul ignore next*/_ref) {
           }
         }
 
-        path.replaceWithMultiple(nodes);
+        var nodesOut = [];
+        for (var _iterator5 = nodes, _isArray5 = Array.isArray(_iterator5), _i5 = 0, _iterator5 = _isArray5 ? _iterator5 : (0, _getIterator3.default)(_iterator5);;) {
+          var _ref7;
+
+          if (_isArray5) {
+            if (_i5 >= _iterator5.length) break;
+            _ref7 = _iterator5[_i5++];
+          } else {
+            _i5 = _iterator5.next();
+            if (_i5.done) break;
+            _ref7 = _i5.value;
+          }
+
+          var _node = _ref7;
+
+          var tail = nodesOut[nodesOut.length - 1];
+          if (tail && t.isVariableDeclaration(tail) && t.isVariableDeclaration(_node) && tail.kind === _node.kind) {
+            var _tail$declarations;
+
+            (_tail$declarations = tail.declarations).push.apply(_tail$declarations, _node.declarations);
+          } else {
+            nodesOut.push(_node);
+          }
+        }
+
+        for (var _iterator6 = nodesOut, _isArray6 = Array.isArray(_iterator6), _i6 = 0, _iterator6 = _isArray6 ? _iterator6 : (0, _getIterator3.default)(_iterator6);;) {
+          var _ref8;
+
+          if (_isArray6) {
+            if (_i6 >= _iterator6.length) break;
+            _ref8 = _iterator6[_i6++];
+          } else {
+            _i6 = _iterator6.next();
+            if (_i6.done) break;
+            _ref8 = _i6.value;
+          }
+
+          var nodeOut = _ref8;
+
+          if (!nodeOut.declarations) continue;
+          for (var _iterator7 = nodeOut.declarations, _isArray7 = Array.isArray(_iterator7), _i7 = 0, _iterator7 = _isArray7 ? _iterator7 : (0, _getIterator3.default)(_iterator7);;) {
+            var _ref9;
+
+            if (_isArray7) {
+              if (_i7 >= _iterator7.length) break;
+              _ref9 = _iterator7[_i7++];
+            } else {
+              _i7 = _iterator7.next();
+              if (_i7.done) break;
+              _ref9 = _i7.value;
+            }
+
+            var declaration = _ref9;
+            var name = declaration.id.name;
+
+            if (scope.bindings[name]) {
+              scope.bindings[name].kind = nodeOut.kind;
+            }
+          }
+        }
+
+        if (nodesOut.length === 1) {
+          path.replaceWith(nodesOut[0]);
+        } else {
+          path.replaceWithMultiple(nodesOut);
+        }
       }
     }
   };
 };
 
-/*istanbul ignore next*/
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
-module.exports = exports["default"]; /* eslint max-len: 0 */
+module.exports = exports["default"];

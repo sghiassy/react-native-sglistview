@@ -25,9 +25,9 @@ exports.default = function (fn) {
           resolve(value);
         } else {
           return _promise2.default.resolve(value).then(function (value) {
-            return step("next", value);
+            step("next", value);
           }, function (err) {
-            return step("throw", err);
+            step("throw", err);
           });
         }
       }

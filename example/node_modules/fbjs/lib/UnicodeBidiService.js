@@ -56,7 +56,6 @@ var UnicodeBidiService = function () {
    *
    * @param defaultDir  Default direction of the service
    */
-
   function UnicodeBidiService(defaultDir) {
     _classCallCheck(this, UnicodeBidiService);
 

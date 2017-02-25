@@ -48,12 +48,19 @@ addParseToken(['Z', 'ZZ'], function (input, array, config) {
 var chunkOffset = /([\+\-]|\d\d)/gi;
 
 function offsetFromString(matcher, string) {
-    var matches = ((string || '').match(matcher) || []);
+    var matches = (string || '').match(matcher);
+
+    if (matches === null) {
+        return null;
+    }
+
     var chunk   = matches[matches.length - 1] || [];
     var parts   = (chunk + '').match(chunkOffset) || ['-', 0, 0];
     var minutes = +(parts[1] * 60) + toInt(parts[2]);
 
-    return parts[0] === '+' ? minutes : -minutes;
+    return minutes === 0 ?
+      0 :
+      parts[0] === '+' ? minutes : -minutes;
 }
 
 // Return a moment from input, that is local/utc/zone equivalent to model.
@@ -104,6 +111,9 @@ export function getSetOffset (input, keepLocalTime) {
     if (input != null) {
         if (typeof input === 'string') {
             input = offsetFromString(matchShortOffset, input);
+            if (input === null) {
+                return this;
+            }
         } else if (Math.abs(input) < 16) {
             input = input * 60;
         }
@@ -161,10 +171,16 @@ export function setOffsetToLocal (keepLocalTime) {
 }
 
 export function setOffsetToParsedOffset () {
-    if (this._tzm) {
+    if (this._tzm != null) {
         this.utcOffset(this._tzm);
     } else if (typeof this._i === 'string') {
-        this.utcOffset(offsetFromString(matchOffset, this._i));
+        var tZone = offsetFromString(matchOffset, this._i);
+        if (tZone != null) {
+            this.utcOffset(tZone);
+        }
+        else {
+            this.utcOffset(0, true);
+        }
     }
     return this;
 }

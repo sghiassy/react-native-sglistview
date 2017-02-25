@@ -14,25 +14,29 @@ Pass in a string of any kind of text and get the indentation.
 
 ## Install
 
-```sh
+```
 $ npm install --save detect-indent
 ```
 
 
 ## Usage
 
+Here we modify a JSON file while persisting the indentation:
+
 ```js
-// modify a JSON file while persisting the indentation in Node
 var fs = require('fs');
 var detectIndent = require('detect-indent');
+
 /*
 {
     "ilove": "pizza"
 }
 */
 var file = fs.readFileSync('foo.json', 'utf8');
+
 // tries to detect the indentation and falls back to a default if it can't
 var indent = detectIndent(file).indent || '    ';
+
 var json = JSON.parse(file);
 
 json.ilove = 'unicorns';
@@ -50,28 +54,9 @@ fs.writeFileSync('foo.json', JSON.stringify(json, null, indent));
 
 Accepts a string and returns an object with stats about the indentation:  
 
-* `amount`: {Number} the amount of indentation, e.g. `2`  
-* `type`: {String|Null} the type of indentation. Possible values are `tab`, `space` or `null` if no indentation is detected  
-* `indent`: {String} the actual indentation
-
-
-## CLI
-
-```sh
-$ npm install --global detect-indent
-```
-
-```
-$ detect-indent --help
-
-  Usage
-    detect-indent <file>
-    echo <string> | detect-indent
-
-  Example
-    echo '  foo\n  bar' | detect-indent | wc --chars
-    2
-```
+* `amount` {number} - Amount of indentation, e.g. `2`  
+* `type` {string|null} - Type of indentation. Possible values are `tab`, `space` or `null` if no indentation is detected  
+* `indent`   {string} - Actual indentation
 
 
 ## Algorithm
@@ -86,7 +71,7 @@ html {
 }
 
 body {
-  background: grey;
+  background: gray;
 }
 
 p {
@@ -96,7 +81,7 @@ p {
 }
 ```
 
-[Source](https://medium.com/@heatherarthur/detecting-code-indentation-eff3ed0fb56b#3918).
+[Source.](https://medium.com/@heatherarthur/detecting-code-indentation-eff3ed0fb56b#3918)
 
 Furthermore, if there are more than one most used difference, the indentation with the most lines is selected.
 
@@ -104,7 +89,7 @@ In the following example, the indentation is detected as 4-spaces:
 
 ```css
 body {
-  background: grey;
+  background: gray;
 }
 
 p {
@@ -113,6 +98,11 @@ p {
     text-indent: 2em;
 }
 ```
+
+
+## Related
+
+- [detect-indent-cli](https://github.com/sindresorhus/detect-indent-cli) - CLI for this module
 
 
 ## License

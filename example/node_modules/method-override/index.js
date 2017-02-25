@@ -42,7 +42,7 @@ var vary = require('vary')
  */
 
 module.exports = function methodOverride (getter, options) {
-  options = options || {}
+  var opts = options || {}
 
   // get the getter fn
   var get = typeof getter === 'function'
@@ -50,9 +50,9 @@ module.exports = function methodOverride (getter, options) {
     : createGetter(getter || 'X-HTTP-Method-Override')
 
   // get allowed request methods to examine
-  var methods = options.methods === undefined
+  var methods = opts.methods === undefined
     ? ['POST']
-    : options.methods
+    : opts.methods
 
   return function methodOverride (req, res, next) {
     var method
