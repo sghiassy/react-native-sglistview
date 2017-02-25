@@ -34,7 +34,8 @@ var PrivateMethods = {
   /**
    * Go through the changed rows and update the cell with their new visibility state
    */
-  updateCellsVisibility: function updateCellsVisibility(cellData, changedRows) {
+  updateCellsVisibility: function updateCellsVisibility(cellData, visibleRows, changedRows) {
+    // update changed rows
     for (var section in changedRows) {
       if (changedRows.hasOwnProperty(section)) {
         // Good JS hygiene check
@@ -49,6 +50,26 @@ var PrivateMethods = {
             // Set the cell's new visibility state
             if (currentCell && currentCell.setVisibility) {
               currentCell.setVisibility(currentCellVisibility);
+            }
+          }
+        }
+      }
+    }
+
+    // set visible rows visible, see https://github.com/sghiassy/react-native-sglistview/issues/12
+    for (var _section in visibleRows) {
+      if (visibleRows.hasOwnProperty(_section)) {
+        // Good JS hygiene check
+        var _currentSection = visibleRows[_section];
+
+        for (var _row in _currentSection) {
+          if (_currentSection.hasOwnProperty(_row)) {
+            // Good JS hygiene check
+            var _currentCell = cellData[_section][_row];
+
+            // Set the cell visible
+            if (_currentCell && _currentCell.setVisibility) {
+              _currentCell.setVisibility(true);
             }
           }
         }
@@ -196,10 +217,9 @@ var SGListView = _react2.default.createClass({
     this.cellData = {
       lastVisibleRow: 0 };
   },
-  // keep track of the last row rendered
   onChangeVisibleRows: function onChangeVisibleRows(visibleRows, changedRows) {
     // Update cell visibibility per the changedRows
-    PrivateMethods.updateCellsVisibility(this.cellData, changedRows);
+    PrivateMethods.updateCellsVisibility(this.cellData, visibleRows, changedRows);
 
     // Premepty show rows to avoid onscreen flashes
     PrivateMethods.updateCellsPremptively(this.props, this.cellData, visibleRows);
