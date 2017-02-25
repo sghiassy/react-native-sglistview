@@ -50,3 +50,5 @@ example/config/clientId.js
 
 
 npm-debug.log
+node_modules
+/dist
