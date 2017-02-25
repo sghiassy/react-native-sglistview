@@ -6,7 +6,7 @@
   "scripts": {
     "build": "./node_modules/.bin/babel --source-maps=true --out-dir=dist lib",
     "posttest": "mv .babelrc babelrc",
-    "pretest": "mv babelrc .babelrc && eslint lib test && npm run build",
+    "pretest": "mv babelrc .babelrc; eslint lib test; npm run build",
     "test": "./node_modules/.bin/mocha || mv .babelrc babelrc",
     "x": "open example/ios/AwesomeProject.xcodeproj"
   },
@@ -22,8 +22,8 @@
   "license": "MIT",
   "homepage": "https://github.com/sghiassy/react-native-sglistview",
   "peerDependencies": {
-    "react-native": ">=0.25.0",
-    "react": ">=0.14.0 || ^15.0.0"
+    "react": ">=0.14.0 || ^15.0.0",
+    "react-native": ">=0.25.0"
   },
   "devDependencies": {
     "babel": "^6.5.2",
@@ -46,5 +46,9 @@
     "*.js",
     "dist",
     "lib"
-  ]
+  ],
+  "dependencies": {
+    "react": "^15.4.2",
+    "react-native": "^0.41.2"
+  }
 }
