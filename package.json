@@ -1,10 +1,11 @@
 {
   "name": "react-native-sglistview",
-  "version": "0.3.3",
+  "version": "0.3.5",
   "description": "A React Native module to provide a memory efficent ListView over the native implementation",
   "main": "lib/index.js",
   "scripts": {
     "build": "./node_modules/.bin/babel --source-maps=true --out-dir=dist lib",
+    "lint": "eslint lib",
     "posttest": "mv .babelrc babelrc",
     "pretest": "mv babelrc .babelrc; eslint lib test; npm run build",
     "test": "./node_modules/.bin/mocha || mv .babelrc babelrc",
