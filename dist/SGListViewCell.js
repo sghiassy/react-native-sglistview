@@ -40,7 +40,6 @@ var SGListViewCell = _react2.default.createClass({
       width: 0, // the view defaults to width of size 0
       height: 0 };
   },
-  // the view defaults to height of size 0
   onLayout: function onLayout(evt) {
     // When the cell has actually been layed out, record the rendered width & height
     this.viewProperties.width = evt.nativeEvent.layout.width;
