@@ -79,6 +79,35 @@ var PrivateMethods = {
 
 
   /**
+   * Calculate and return the cell dimensions for the given cell (position and size)
+   */
+  calculateDimensionsForCell: function calculateDimensionsForCell(cellData, childFrames, sectionID, rowID, horizontal, index) {
+    var row = cellData[sectionID];
+    if (!row) {
+      throw new Error('sectionID not found ' + sectionID);
+    }
+    var cell = row[rowID];
+    if (!cell) {
+      throw new Error('rowID not found ' + rowID);
+    }
+    var x = 0;
+    var y = 0;
+
+    var width = cell.viewProperties.width;
+    var height = cell.viewProperties.height;
+    if (childFrames.length) {
+      var childFrame = childFrames[childFrames.length - 1];
+      if (horizontal) {
+        x = childFrame.x + childFrame.width;
+      } else {
+        y = childFrame.y + childFrame.height;
+      }
+    }
+    return { x: x, y: y, width: width, height: height, index: index };
+  },
+
+
+  /**
    * When the user is scrolling up or down - load the cells in the future to make it
    * so the user doesn't see any flashing
    */
@@ -229,6 +258,38 @@ var SGListView = _react2.default.createClass({
       this.props.onChangeVisibleRows(visibleRows, changedRows);
     }
   },
+  onScroll: function onScroll(e) {
+    // onChangeVisibleRows not sent on windows and android; work around this
+    if (_reactNative.Platform.OS !== 'ios') {
+      var childFrames = [];
+      var _props = this.props,
+          dataSource = _props.dataSource,
+          horizontal = _props.horizontal;
+
+      var allRowIDs = dataSource.rowIdentities;
+      try {
+        var idx = 0;
+        for (var sectionIdx = 0; sectionIdx < allRowIDs.length; sectionIdx++) {
+          var sectionID = dataSource.sectionIdentities[sectionIdx];
+          var rowIDs = allRowIDs[sectionIdx];
+
+          if (this.props.renderSectionHeader) {
+            childFrames.push(PrivateMethods.calculateDimensionsForCell(this.cellData, childFrames, sectionID, 'dummy', horizontal, idx++));
+          }
+          for (var rowIdx = 0; rowIdx < rowIDs.length; rowIdx++) {
+            childFrames.push(PrivateMethods.calculateDimensionsForCell(this.cellData, childFrames, sectionID, rowIDs[rowIdx], horizontal, idx++));
+          }
+        }
+      } catch (ex) {}
+      // do nothing. This is expected
+
+      // This code is a workaround which unfortunately depends upon calling a private method of the native list view.
+      this.getNativeListView()._updateVisibleRows(childFrames); // eslint-disable-line no-underscore-dangle
+    }
+    if (this.props.onScroll) {
+      this.props.onScroll(e);
+    }
+  },
   getNativeListView: function getNativeListView() {
     return this.refs.nativeListView;
   },
@@ -255,11 +316,14 @@ var SGListView = _react2.default.createClass({
 
     return component;
   },
-  renderRow: function renderRow(rowData, sectionID, rowID) {
+
+
+  // todo this needs to completely represent list view api
+  renderRow: function renderRow(rowData, sectionID, rowID, highlightRowFunc) {
     var _this = this;
 
     // Get the user's view
-    var view = this.props.renderRow(rowData, sectionID, rowID);
+    var view = this.props.renderRow(rowData, sectionID, rowID, highlightRowFunc);
 
     // Wrap the user's view in a SGListViewCell for tracking & performance
     return _react2.default.createElement(_SGListViewCell2.default, {
@@ -270,12 +334,26 @@ var SGListView = _react2.default.createClass({
         PrivateMethods.captureReferenceFor(_this.cellData, sectionID, rowID, row);
       } });
   },
+  renderSectionHeader: function renderSectionHeader(sectionData, sectionID) {
+    var _this2 = this;
+
+    var view = this.props.renderSectionHeader(sectionData, sectionID);
+    return _react2.default.createElement(_SGListViewCell2.default, {
+      usersView: view,
+      ref: function ref(section) {
+        // Capture a reference to the cell on creation
+        // We have to do it this way for ListView: https://github.com/facebook/react-native/issues/897
+        PrivateMethods.captureReferenceFor(_this2.cellData, sectionID, 'dummy', section);
+      } });
+  },
   render: function render() {
     return _react2.default.createElement(_reactNative.ListView, _extends({}, this.props, {
       ref: 'nativeListView',
       renderScrollComponent: this.renderScrollComponent,
       renderRow: this.renderRow,
-      onChangeVisibleRows: this.onChangeVisibleRows }));
+      renderSectionHeader: this.renderSectionHeader,
+      onChangeVisibleRows: this.onChangeVisibleRows,
+      onScroll: this.onScroll }));
   }
 });
 
