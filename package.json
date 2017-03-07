@@ -4,13 +4,13 @@
   "description": "A React Native module to provide a memory efficent ListView over the native implementation",
   "main": "lib/index.js",
   "scripts": {
-    "config:disable:babelrc": "mv .babelrc babelrc",
-    "config:enable:babelrc": "mv babelrc .babelrc",
+    "config:disable:babelrc": "./scripts/disable_babel_config.sh",
+    "config:enable:babelrc": "./scripts/enable_babel_config.sh",
     "build": "yarn config:enable:babelrc; ./node_modules/.bin/babel --source-maps=true --out-dir=dist lib; yarn config:disable:babelrc",
     "lint": "eslint lib",
     "posttest": "yarn config:disable:babelrc",
     "pretest": "yarn config:enable:babelrc; eslint lib test; yarn run build",
-    "test": "./node_modules/.bin/mocha || yarn config:disable:babelrc",
+    "test": "yarn config:enable:babelrc; ./node_modules/.bin/mocha || yarn config:disable:babelrc",
     "x": "open example/ios/AwesomeProject.xcodeproj"
   },
   "keywords": [
@@ -24,10 +24,7 @@
   },
   "license": "MIT",
   "homepage": "https://github.com/sghiassy/react-native-sglistview",
-  "peerDependencies": {
-    "react": ">=0.14.0 || ^15.0.0",
-    "react-native": ">=0.25.0"
-  },
+  "peerDependencies": {},
   "devDependencies": {
     "babel": "^6.5.2",
     "babel-cli": "^6.10.1",
@@ -41,7 +38,9 @@
     "eslint-plugin-jsx-a11y": "^1.4.2",
     "eslint-plugin-react": "^5.1.1",
     "mocha": "^2.5.3",
+    "react": "^15.4.2",
     "react-dom": "^15.1.0",
+    "react-native": "^0.42.0",
     "react-native-mock": "^0.2.3",
     "should": "^9.0.2"
   },
