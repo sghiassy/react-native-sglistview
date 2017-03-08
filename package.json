@@ -1,13 +1,15 @@
 {
   "name": "react-native-sglistview",
-  "version": "0.3.9",
+  "version": "0.3.10",
   "description": "A React Native module to provide a memory efficent ListView over the native implementation",
-  "main": "lib/index.js",
+  "main": "dist/index.js",
   "scripts": {
+    "build": "yarn config:enable:babelrc; ./node_modules/.bin/babel --source-maps=true --out-dir=dist lib; yarn config:disable:babelrc",
     "config:disable:babelrc": "./scripts/disable_babel_config.sh",
     "config:enable:babelrc": "./scripts/enable_babel_config.sh",
-    "build": "yarn config:enable:babelrc; ./node_modules/.bin/babel --source-maps=true --out-dir=dist lib; yarn config:disable:babelrc",
+    "dev:link":"wml add ./dist ../react-native-sglistview-example/node_modules/react-native-sglistview/dist",
     "lint": "eslint lib",
+    "prepublish": "yarn run test",
     "posttest": "yarn config:disable:babelrc",
     "pretest": "yarn config:enable:babelrc; eslint lib test; yarn run build",
     "test": "yarn config:enable:babelrc; ./node_modules/.bin/mocha || yarn config:disable:babelrc",
@@ -46,8 +48,7 @@
   },
   "files": [
     "*.js",
-    "dist",
-    "lib"
+    "dist"
   ],
   "bugs": {
     "url": "https://github.com/sghiassy/react-native-sglistview/issues"

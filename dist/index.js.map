@@ -1,1 +1,0 @@
-{"version":3,"sources":["../lib/index.js"],"names":["module","exports"],"mappings":";;AAAA;;;;;;AAEAA,OAAOC,OAAP","file":"index.js","sourcesContent":["import SGListView from './SGListView';\n\nmodule.exports = SGListView;\n"]}
