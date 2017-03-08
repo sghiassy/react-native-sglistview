@@ -47,8 +47,11 @@ Carthage/Build
 !Carthage/Build/iOS/Realm.framework
 !Carthage/Build/iOS/Realm.dsym
 
-# ignore the config.js file since it contains sensitve information
+# ignore the config.js file since it contains sensitive information
 example/config/clientId.js
+
+# Ignore Dist Builds
+dist
 
 
 npm-debug.log
