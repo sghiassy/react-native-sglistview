@@ -103,6 +103,8 @@ class CardListView extends React.Component {
 
 To view a fully working app example, check out the example app at: https://github.com/sghiassy/react-native-sglistview-example
 
+![](https://raw.githubusercontent.com/sghiassy/react-native-sglistview-example/master/docs/example.gif)
+
 #### Reference Configuration
 SGListView passes its props to React-Native's ListView. If ListView requires a prop, then you must supply that prop to SGListView so it can pass it down. For more information read these two RN official documents: [ListView component](http://facebook.github.io/react-native/releases/0.31/docs/listview.html)  [ListView performance optimize](http://facebook.github.io/react-native/releases/0.31/docs/performance.html#listview-initial-rendering-is-too-slow-or-scroll-performance-is-bad-for-large-lists)
 
@@ -151,10 +153,6 @@ We wanted pixel perfection between ListView and SGListView. This meant that we h
 ### Why didn't you wrap a UICollectionView / UITableView?
 
 One key goal for this project was to make the final solution platform independent. Using an underlying UICollectionView or UITableView would've tied the implementation to iOS's UIKit and was something we worked to avoid.
-
-## Notice
-
-This is alpha-version code; use skeptically.
 
 ## Authors
 
