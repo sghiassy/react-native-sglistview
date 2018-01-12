@@ -43,6 +43,8 @@
     "react": "^15.4.2",
     "react-dom": "^15.1.0",
     "react-native": "^0.42.0",
+    "prop-types": "^15.5.7",
+    "create-react-class": "^15.6.2",
     "react-native-mock": "^0.2.3",
     "should": "^9.0.2"
   },
