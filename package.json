@@ -1,6 +1,6 @@
 {
   "name": "react-native-sglistview",
-  "version": "0.4.4",
+  "version": "0.4.5",
   "description": "A React Native module to provide a memory efficent ListView over the native implementation",
   "main": "dist/index.js",
   "scripts": {
