@@ -103,7 +103,7 @@ class CardListView extends React.Component {
 
 To view a fully working app example, check out the example app at: https://github.com/sghiassy/react-native-sglistview-example
 
-![](https://raw.githubusercontent.com/sghiassy/react-native-sglistview-example/master/docs/example.gif)
+![](./public/example.gif)
 
 #### Reference Configuration
 SGListView passes its props to React-Native's ListView. If ListView requires a prop, then you must supply that prop to SGListView so it can pass it down. For more information read these two RN official documents: [ListView component](http://facebook.github.io/react-native/releases/0.31/docs/listview.html)  [ListView performance optimize](http://facebook.github.io/react-native/releases/0.31/docs/performance.html#listview-initial-rendering-is-too-slow-or-scroll-performance-is-bad-for-large-lists)
