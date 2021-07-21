@@ -12,14 +12,14 @@ I'm currently looking for maintainers to help maintain and improve this package 
 
 The React Native team has done a tremendous job building a robust platform. One oversight, is the memory performance of their ListView implementation. When scrolling down long lists, the memory footprint increases linearly and will eventually exhaust all available memory. On a device as memory-constrained as a mobile device, this behavior can be a deal breaker for many.
 
-![Native ListView Performance](http://cl.ly/image/1E1Q2M2x1Y3F/Before.png)
+![Native ListView Performance](./public/before.png)
 An example of ListView performance for long lists.
 
 ## The Solution
 
 SGListView resolves React Native's ListView memory problem by controlling what's being drawn to the screen and what's kept in memory. When cells are scrolled off screen, SGListView intelligently flushes their internal view and only retains the cell's rendered bounding box - resulting in huge memory gains.
 
-![SGListView Performance](http://cl.ly/image/3e2y0a1C1n0K/After.png)
+![SGListView Performance](./public/after.png)
 An example of SGListView performance for long lists.
 
 
